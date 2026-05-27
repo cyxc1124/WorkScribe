@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import club.cyxc.workscribe.data.PunchRecord
 import club.cyxc.workscribe.data.PunchType
+import club.cyxc.workscribe.util.OffHoursPunchState
 import club.cyxc.workscribe.util.PunchTimeRules
 import club.cyxc.workscribe.util.PunchWindow
 import club.cyxc.workscribe.util.TimeFormatter
@@ -105,6 +106,7 @@ fun PunchScreen(
             item {
                 PunchButton(
                     nowMillis = nowMillis,
+                    todayRecords = uiState.todayRecords,
                     onPunch = onPunch,
                 )
             }
@@ -202,7 +204,11 @@ private fun StatusCard(isWorking: Boolean, workDurationMillis: Long) {
 }
 
 @Composable
-private fun PunchButton(nowMillis: Long, onPunch: () -> Unit) {
+private fun PunchButton(
+    nowMillis: Long,
+    todayRecords: List<PunchRecord>,
+    onPunch: () -> Unit,
+) {
     when (PunchTimeRules.windowAt(nowMillis)) {
         PunchWindow.CLOCK_IN -> ActivePunchButton(
             label = "上班打卡",
@@ -216,7 +222,10 @@ private fun PunchButton(nowMillis: Long, onPunch: () -> Unit) {
             containerColor = MaterialTheme.colorScheme.tertiary,
             onPunch = onPunch,
         )
-        PunchWindow.OFF_HOURS -> OffHoursPunchButton()
+        PunchWindow.OFF_HOURS -> OffHoursPunchButton(
+            todayRecords = todayRecords,
+            onPunch = onPunch,
+        )
     }
 }
 
@@ -250,7 +259,30 @@ private fun ActivePunchButton(
 }
 
 @Composable
-private fun OffHoursPunchButton() {
+private fun OffHoursPunchButton(
+    todayRecords: List<PunchRecord>,
+    onPunch: () -> Unit,
+) {
+    when (PunchTimeRules.offHoursPunchState(todayRecords)) {
+        OffHoursPunchState.MAKEUP_IN -> ActivePunchButton(
+            label = PunchTimeRules.MAKEUP_IN_LABEL,
+            icon = Icons.Default.Login,
+            containerColor = MaterialTheme.colorScheme.primary,
+            onPunch = onPunch,
+        )
+        OffHoursPunchState.WAIT_FOR_OUT -> DisabledPunchButton(
+            label = PunchTimeRules.WAIT_FOR_OUT_LABEL,
+            hint = PunchTimeRules.WAIT_FOR_OUT_HINT,
+        )
+        OffHoursPunchState.BLOCKED -> DisabledPunchButton(
+            label = PunchTimeRules.OFF_HOURS_BUTTON,
+            hint = PunchTimeRules.OFF_HOURS_HINT,
+        )
+    }
+}
+
+@Composable
+private fun DisabledPunchButton(label: String, hint: String) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -271,13 +303,13 @@ private fun OffHoursPunchButton() {
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = "非打卡时段",
+                text = label,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
             )
         }
         Text(
-            text = PunchTimeRules.OFF_HOURS_HINT,
+            text = hint,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

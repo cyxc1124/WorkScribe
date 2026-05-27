@@ -10,4 +10,7 @@
     <string name="delete_record">删除记录</string>
     <string name="off_hours_hint">12:00–17:30 为非打卡时段，请稍后再试</string>
     <string name="off_hours_button">非打卡时段</string>
+    <string name="makeup_in">补打上班卡</string>
+    <string name="wait_for_out">等待下班打卡</string>
+    <string name="wait_for_out_hint">17:30 后可打下班卡</string>
 </resources>

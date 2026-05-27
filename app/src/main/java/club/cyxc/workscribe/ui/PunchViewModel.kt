@@ -44,7 +44,11 @@ class PunchViewModel(
 
     fun punch() {
         viewModelScope.launch {
-            val type = PunchTimeRules.punchTypeFor(System.currentTimeMillis()) ?: return@launch
+            val state = uiState.value
+            val type = PunchTimeRules.punchTypeFor(
+                millis = System.currentTimeMillis(),
+                todayRecords = state.todayRecords,
+            ) ?: return@launch
             repository.punch(type)
         }
     }
