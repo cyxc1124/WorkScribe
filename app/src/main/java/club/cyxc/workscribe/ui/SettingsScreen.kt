@@ -14,27 +14,29 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -196,44 +198,73 @@ fun SettingsScreen(
             TimeField.CLOCK_OUT_END -> uiState.clockOutEndMinutes
         }
         val initialTime = PunchTimeConfig.minutesToLocalTime(initialMinutes)
-        val timePickerState = rememberTimePickerState(
-            initialHour = initialTime.hour,
-            initialMinute = initialTime.minute,
-            is24Hour = true,
-        )
         val title = when (field) {
             TimeField.CLOCK_IN_START -> "上班打卡开始时间"
             TimeField.CLOCK_IN_END -> "上班打卡结束时间"
             TimeField.CLOCK_OUT_START -> "下班打卡开始时间"
             TimeField.CLOCK_OUT_END -> "下班打卡结束时间"
         }
+        var pickerHour by rememberSaveable(field) { mutableIntStateOf(initialTime.hour) }
+        var pickerMinute by rememberSaveable(field) { mutableIntStateOf(initialTime.minute) }
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-        AlertDialog(
+        ModalBottomSheet(
             onDismissRequest = { editingField = null },
-            title = { Text(title) },
-            text = { TimePicker(state = timePickerState) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val minutes = timePickerState.hour * 60 + timePickerState.minute
-                        when (field) {
-                            TimeField.CLOCK_IN_START -> onUpdateClockInStart(minutes)
-                            TimeField.CLOCK_IN_END -> onUpdateClockInEnd(minutes)
-                            TimeField.CLOCK_OUT_START -> onUpdateClockOutStart(minutes)
-                            TimeField.CLOCK_OUT_END -> onUpdateClockOutEnd(minutes)
-                        }
-                        editingField = null
-                    },
+            sheetState = sheetState,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                )
+                Text(
+                    text = "滑动选择小时与分钟",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+                WheelTimePicker(
+                    hour = pickerHour,
+                    minute = pickerMinute,
+                    onHourChange = { pickerHour = it },
+                    onMinuteChange = { pickerMinute = it },
+                )
+                HorizontalDivider(modifier = Modifier.padding(top = 16.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("确定")
+                    TextButton(onClick = { editingField = null }) {
+                        Text("取消")
+                    }
+                    Button(
+                        onClick = {
+                            val minutes = pickerHour * 60 + pickerMinute
+                            when (field) {
+                                TimeField.CLOCK_IN_START -> onUpdateClockInStart(minutes)
+                                TimeField.CLOCK_IN_END -> onUpdateClockInEnd(minutes)
+                                TimeField.CLOCK_OUT_START -> onUpdateClockOutStart(minutes)
+                                TimeField.CLOCK_OUT_END -> onUpdateClockOutEnd(minutes)
+                            }
+                            editingField = null
+                        },
+                        modifier = Modifier.padding(start = 8.dp),
+                    ) {
+                        Text("确定")
+                    }
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { editingField = null }) {
-                    Text("取消")
-                }
-            },
-        )
+            }
+        }
     }
 }
 
