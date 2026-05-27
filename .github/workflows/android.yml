@@ -1,0 +1,105 @@
+name: Android
+
+# 触发：
+# - main / master 分支 push、PR：跑 debug 构建 + Android lint，上传 APK 供下载
+# - 推 tag `v*`：在 build job 通过后跑 release job，产出 release APK 并附到 GitHub Release
+#   （当前 WorkScribe 尚未配置正式签名；release 使用 AGP 默认 debug 签名，仅供内部分发/归档）
+#
+# 后续若需正式签名发版，可参考 miho-live-app-android：
+#   - 在 app/build.gradle.kts 接入 keystore.properties
+#   - 添加 version.properties + 发版校验
+#   - 在 repo Settings → Secrets 配置：
+#     RELEASE_KEYSTORE_BASE64 / RELEASE_STORE_PASSWORD / RELEASE_KEY_ALIAS / RELEASE_KEY_PASSWORD
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Grant execute on gradlew
+        run: chmod +x ./gradlew
+
+      - name: Assemble Debug
+        run: ./gradlew :app:assembleDebug --stacktrace
+
+      - name: Android Lint (Debug)
+        run: ./gradlew :app:lintDebug --stacktrace
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload Lint Reports on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-reports
+          path: app/build/reports/lint-results-*.html
+          if-no-files-found: ignore
+          retention-days: 7
+
+  release:
+    name: Release APK
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Grant execute on gradlew
+        run: chmod +x ./gradlew
+
+      - name: Assemble Release
+        run: ./gradlew :app:assembleRelease --stacktrace
+
+      - name: Upload Release APK as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Attach APK to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/build/outputs/apk/release/*.apk
+          fail_on_unmatched_files: true
+          generate_release_notes: true
