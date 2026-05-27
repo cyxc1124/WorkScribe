@@ -1,5 +1,6 @@
 package club.cyxc.workscribe.data
 
+import club.cyxc.workscribe.util.MakeupPunchValidator
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
@@ -37,6 +38,12 @@ class PunchRepository(
 
     suspend fun punch(type: PunchType) {
         dao.insert(PunchRecord(timestamp = System.currentTimeMillis(), type = type))
+    }
+
+    suspend fun makeupPunch(type: PunchType, timestamp: Long, zoneId: ZoneId = ZoneId.systemDefault()): String? {
+        MakeupPunchValidator.validate(timestamp, zoneId)?.let { return it }
+        dao.insert(PunchRecord(timestamp = timestamp, type = type))
+        return null
     }
 
     suspend fun deleteRecord(id: Long) {

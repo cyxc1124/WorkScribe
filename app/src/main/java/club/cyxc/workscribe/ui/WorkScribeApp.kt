@@ -17,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import java.time.LocalDate
 
 private enum class AppTab {
     PUNCH,
@@ -32,6 +33,24 @@ fun WorkScribeApp(
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(AppTab.PUNCH) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
+    var showMakeupPunch by rememberSaveable { mutableStateOf(false) }
+    var makeupPunchInitialDate by rememberSaveable { mutableStateOf<String?>(null) }
+
+    if (showMakeupPunch) {
+        val initialDate = makeupPunchInitialDate?.let(LocalDate::parse)
+            ?: LocalDate.now().minusDays(1)
+        MakeupPunchDialog(
+            initialDate = initialDate,
+            onDismiss = { showMakeupPunch = false },
+            onConfirm = { timestamp, type ->
+                punchViewModel.makeupPunch(timestamp, type) { error ->
+                    if (error == null) {
+                        showMakeupPunch = false
+                    }
+                }
+            },
+        )
+    }
 
     if (showSettings) {
         val settingsUiState by settingsViewModel.uiState.collectAsState()
@@ -86,6 +105,10 @@ fun WorkScribeApp(
                     onPunch = punchViewModel::punch,
                     onDeleteRecord = punchViewModel::deleteRecord,
                     onOpenSettings = { showSettings = true },
+                    onOpenMakeupPunch = {
+                        makeupPunchInitialDate = null
+                        showMakeupPunch = true
+                    },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -100,6 +123,10 @@ fun WorkScribeApp(
                     onGoToToday = calendarViewModel::goToToday,
                     onSetDayStatus = calendarViewModel::setDayStatus,
                     onClearDayStatus = calendarViewModel::clearDayStatus,
+                    onOpenMakeupPunch = { date ->
+                        makeupPunchInitialDate = date.toString()
+                        showMakeupPunch = true
+                    },
                     modifier = Modifier.padding(innerPadding),
                 )
             }

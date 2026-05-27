@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Login
 import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -63,6 +64,7 @@ fun PunchScreen(
     onPunch: () -> Unit,
     onDeleteRecord: (Long) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenMakeupPunch: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -84,6 +86,12 @@ fun PunchScreen(
             TopAppBar(
                 title = { Text("奇迹手账") },
                 actions = {
+                    IconButton(onClick = onOpenMakeupPunch) {
+                        Icon(
+                            imageVector = Icons.Default.EditCalendar,
+                            contentDescription = "补卡",
+                        )
+                    }
                     IconButton(onClick = onOpenSettings) {
                         Icon(
                             imageVector = Icons.Default.Settings,

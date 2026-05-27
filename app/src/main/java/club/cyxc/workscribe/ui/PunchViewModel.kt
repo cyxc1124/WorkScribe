@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import club.cyxc.workscribe.data.PunchRecord
 import club.cyxc.workscribe.data.PunchRepository
 import club.cyxc.workscribe.data.PunchSettingsRepository
+import club.cyxc.workscribe.data.PunchType
 import club.cyxc.workscribe.util.PunchTimeRules
 import club.cyxc.workscribe.util.WorkDurationCalculator
 import kotlinx.coroutines.flow.SharingStarted
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.ZoneId
 
 data class PunchUiState(
     val todayRecords: List<PunchRecord> = emptyList(),
@@ -61,6 +63,13 @@ class PunchViewModel(
     fun deleteRecord(id: Long) {
         viewModelScope.launch {
             repository.deleteRecord(id)
+        }
+    }
+
+    fun makeupPunch(timestamp: Long, type: PunchType, onComplete: (String?) -> Unit) {
+        viewModelScope.launch {
+            val error = repository.makeupPunch(type, timestamp, ZoneId.systemDefault())
+            onComplete(error)
         }
     }
 }

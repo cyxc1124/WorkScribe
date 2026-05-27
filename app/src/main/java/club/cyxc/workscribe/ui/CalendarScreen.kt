@@ -86,6 +86,7 @@ fun CalendarScreen(
     onGoToToday: () -> Unit,
     onSetDayStatus: (LocalDate, DayStatusType) -> Unit,
     onClearDayStatus: (LocalDate) -> Unit,
+    onOpenMakeupPunch: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -138,6 +139,22 @@ fun CalendarScreen(
                         },
                         onClear = { onClearDayStatus(uiState.selectedDate) },
                     )
+                }
+                if (!uiState.selectedDate.isAfter(LocalDate.now())) {
+                    item {
+                        OutlinedButton(
+                            onClick = { onOpenMakeupPunch(uiState.selectedDate) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreTime,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("补卡")
+                        }
+                    }
                 }
             }
             if (uiState.selectedDate == null) {
