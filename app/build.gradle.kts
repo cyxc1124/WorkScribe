@@ -90,12 +90,12 @@ android {
     }
 }
 
-// Release APK 命名：WorkScribe-{versionName}.apk（AGP 9 无 applicationVariants，在打包后重命名）
+// Release APK 命名：奇迹手账-{versionName}.apk（AGP 9 无 applicationVariants，在打包后重命名）
 afterEvaluate {
     tasks.named("assembleRelease") {
         doLast {
             val releaseDir = layout.buildDirectory.dir("outputs/apk/release").get().asFile
-            val target = File(releaseDir, "WorkScribe-$appVersionName.apk")
+            val target = File(releaseDir, "奇迹手账-$appVersionName.apk")
             releaseDir.listFiles()?.filter { it.extension == "apk" && it.name != target.name }?.forEach { apk ->
                 apk.copyTo(target, overwrite = true)
                 apk.delete()

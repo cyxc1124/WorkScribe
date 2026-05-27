@@ -1,4 +1,4 @@
-# WorkScribe
+# 奇迹手账
 
 Android 工作记录应用（`club.cyxc.workscribe`）。
 
@@ -9,7 +9,7 @@ Android 工作记录应用（`club.cyxc.workscribe`）。
 ./gradlew :app:assembleRelease
 ```
 
-Release 产物：`app/build/outputs/apk/release/WorkScribe-{versionName}.apk`
+Release 产物：`app/build/outputs/apk/release/奇迹手账-{versionName}.apk`
 
 ## 版本号
 

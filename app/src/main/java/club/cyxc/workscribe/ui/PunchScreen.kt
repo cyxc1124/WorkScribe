@@ -82,7 +82,7 @@ fun PunchScreen(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("WorkScribe") },
+                title = { Text("奇迹手账") },
                 actions = {
                     IconButton(onClick = onOpenSettings) {
                         Icon(

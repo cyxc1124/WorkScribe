@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">WorkScribe</string>
+    <string name="app_name">奇迹手账</string>
     <string name="status_working">工作中</string>
     <string name="status_off">未上班</string>
     <string name="punch_in">上班打卡</string>
