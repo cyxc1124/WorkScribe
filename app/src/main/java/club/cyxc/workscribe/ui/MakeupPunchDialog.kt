@@ -21,11 +21,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -33,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import club.cyxc.workscribe.data.PunchTimeConfig
 import club.cyxc.workscribe.data.PunchType
 import club.cyxc.workscribe.util.MakeupPunchValidator
 import club.cyxc.workscribe.util.TimeFormatter
@@ -51,15 +51,12 @@ fun MakeupPunchDialog(
     val zoneId = remember { ZoneId.systemDefault() }
     val today = remember { LocalDate.now(zoneId) }
     var selectedDate by remember(initialDate) { mutableStateOf(initialDate.coerceAtMost(today)) }
+    var selectedHour by remember { mutableIntStateOf(9) }
+    var selectedMinute by remember { mutableIntStateOf(0) }
     var selectedType by remember { mutableStateOf(PunchType.IN) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
     var validationError by remember { mutableStateOf<String?>(null) }
-
-    val timePickerState = rememberTimePickerState(
-        initialHour = 9,
-        initialMinute = 0,
-        is24Hour = true,
-    )
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
@@ -96,6 +93,21 @@ fun MakeupPunchDialog(
         }
     }
 
+    if (showTimePicker) {
+        WheelTimePickerBottomSheet(
+            title = "补卡时间",
+            initialHour = selectedHour,
+            initialMinute = selectedMinute,
+            onDismiss = { showTimePicker = false },
+            onConfirm = { hour, minute ->
+                selectedHour = hour
+                selectedMinute = minute
+                validationError = null
+                showTimePicker = false
+            },
+        )
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         modifier = modifier,
@@ -129,14 +141,31 @@ fun MakeupPunchDialog(
                     )
                 }
 
-                Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showTimePicker = true }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column {
+                        Text(
+                            text = "时间",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = PunchTimeConfig.formatMinutes(selectedHour * 60 + selectedMinute),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
                     Text(
-                        text = "时间",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 8.dp),
+                        text = "更改",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
                     )
-                    TimePicker(state = timePickerState)
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -193,7 +222,7 @@ fun MakeupPunchDialog(
             TextButton(
                 onClick = {
                     val timestamp = selectedDate
-                        .atTime(timePickerState.hour, timePickerState.minute)
+                        .atTime(selectedHour, selectedMinute)
                         .atZone(zoneId)
                         .toInstant()
                         .toEpochMilli()
