@@ -27,9 +27,27 @@ private enum class AppTab {
 fun WorkScribeApp(
     punchViewModel: PunchViewModel,
     calendarViewModel: CalendarViewModel,
+    settingsViewModel: SettingsViewModel,
     modifier: Modifier = Modifier,
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(AppTab.PUNCH) }
+    var showSettings by rememberSaveable { mutableStateOf(false) }
+
+    if (showSettings) {
+        val settingsUiState by settingsViewModel.uiState.collectAsState()
+        SettingsScreen(
+            uiState = settingsUiState,
+            onBack = { showSettings = false },
+            onUpdateClockInStart = settingsViewModel::updateClockInStart,
+            onUpdateClockInEnd = settingsViewModel::updateClockInEnd,
+            onUpdateClockOutStart = settingsViewModel::updateClockOutStart,
+            onUpdateClockOutEnd = settingsViewModel::updateClockOutEnd,
+            onResetToDefaults = settingsViewModel::resetToDefaults,
+            onSave = settingsViewModel::save,
+            modifier = modifier,
+        )
+        return
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -67,6 +85,7 @@ fun WorkScribeApp(
                     uiState = punchUiState,
                     onPunch = punchViewModel::punch,
                     onDeleteRecord = punchViewModel::deleteRecord,
+                    onOpenSettings = { showSettings = true },
                     modifier = Modifier.padding(innerPadding),
                 )
             }

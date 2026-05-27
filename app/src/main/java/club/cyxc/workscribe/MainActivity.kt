@@ -9,20 +9,29 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import club.cyxc.workscribe.ui.CalendarViewModel
 import club.cyxc.workscribe.ui.PunchViewModel
+import club.cyxc.workscribe.ui.SettingsViewModel
 import club.cyxc.workscribe.ui.WorkScribeApp
 import club.cyxc.workscribe.ui.theme.WorkScribeTheme
 
 class MainActivity : ComponentActivity() {
 
+    private val app get() = application as WorkScribeApplication
+
     private val punchViewModel: PunchViewModel by viewModels {
         viewModelFactory {
-            PunchViewModel(application, (application as WorkScribeApplication).repository)
+            PunchViewModel(application, app.repository, app.settingsRepository)
         }
     }
 
     private val calendarViewModel: CalendarViewModel by viewModels {
         viewModelFactory {
-            CalendarViewModel(application, (application as WorkScribeApplication).repository)
+            CalendarViewModel(application, app.repository)
+        }
+    }
+
+    private val settingsViewModel: SettingsViewModel by viewModels {
+        viewModelFactory {
+            SettingsViewModel(application, app.settingsRepository)
         }
     }
 
@@ -34,6 +43,7 @@ class MainActivity : ComponentActivity() {
                 WorkScribeApp(
                     punchViewModel = punchViewModel,
                     calendarViewModel = calendarViewModel,
+                    settingsViewModel = settingsViewModel,
                 )
             }
         }

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Login
 import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -61,6 +62,7 @@ fun PunchScreen(
     uiState: PunchUiState,
     onPunch: () -> Unit,
     onDeleteRecord: (Long) -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -81,6 +83,14 @@ fun PunchScreen(
         topBar = {
             TopAppBar(
                 title = { Text("WorkScribe") },
+                actions = {
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "设置",
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                 ),
@@ -107,6 +117,7 @@ fun PunchScreen(
                 PunchButton(
                     nowMillis = nowMillis,
                     todayRecords = uiState.todayRecords,
+                    punchTimeRules = uiState.punchTimeRules,
                     onPunch = onPunch,
                 )
             }
@@ -207,9 +218,10 @@ private fun StatusCard(isWorking: Boolean, workDurationMillis: Long) {
 private fun PunchButton(
     nowMillis: Long,
     todayRecords: List<PunchRecord>,
+    punchTimeRules: PunchTimeRules,
     onPunch: () -> Unit,
 ) {
-    when (PunchTimeRules.windowAt(nowMillis)) {
+    when (punchTimeRules.windowAt(nowMillis)) {
         PunchWindow.CLOCK_IN -> ActivePunchButton(
             label = "上班打卡",
             icon = Icons.Default.Login,
@@ -224,6 +236,7 @@ private fun PunchButton(
         )
         PunchWindow.OFF_HOURS -> OffHoursPunchButton(
             todayRecords = todayRecords,
+            punchTimeRules = punchTimeRules,
             onPunch = onPunch,
         )
     }
@@ -261,22 +274,23 @@ private fun ActivePunchButton(
 @Composable
 private fun OffHoursPunchButton(
     todayRecords: List<PunchRecord>,
+    punchTimeRules: PunchTimeRules,
     onPunch: () -> Unit,
 ) {
-    when (PunchTimeRules.offHoursPunchState(todayRecords)) {
+    when (punchTimeRules.offHoursPunchState(todayRecords)) {
         OffHoursPunchState.MAKEUP_IN -> ActivePunchButton(
-            label = PunchTimeRules.MAKEUP_IN_LABEL,
+            label = punchTimeRules.makeupInLabel,
             icon = Icons.Default.Login,
             containerColor = MaterialTheme.colorScheme.primary,
             onPunch = onPunch,
         )
         OffHoursPunchState.WAIT_FOR_OUT -> DisabledPunchButton(
-            label = PunchTimeRules.WAIT_FOR_OUT_LABEL,
-            hint = PunchTimeRules.WAIT_FOR_OUT_HINT,
+            label = punchTimeRules.waitForOutLabel,
+            hint = punchTimeRules.waitForOutHint,
         )
         OffHoursPunchState.BLOCKED -> DisabledPunchButton(
-            label = PunchTimeRules.OFF_HOURS_BUTTON,
-            hint = PunchTimeRules.OFF_HOURS_HINT,
+            label = punchTimeRules.offHoursButton,
+            hint = punchTimeRules.offHoursHint,
         )
     }
 }

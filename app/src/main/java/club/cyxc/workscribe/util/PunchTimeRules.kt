@@ -1,6 +1,7 @@
 package club.cyxc.workscribe.util
 
 import club.cyxc.workscribe.data.PunchRecord
+import club.cyxc.workscribe.data.PunchTimeConfig
 import club.cyxc.workscribe.data.PunchType
 import java.time.Instant
 import java.time.LocalTime
@@ -12,31 +13,35 @@ enum class PunchWindow {
     OFF_HOURS,
 }
 
-/** 非打卡时段（12:00–17:30）下的可操作状态 */
+/** 非打卡时段下的可操作状态 */
 enum class OffHoursPunchState {
     /** 今日尚无上班记录，可补打上班卡 */
     MAKEUP_IN,
-    /** 已上班，须等到 17:30 再打下班卡 */
+    /** 已上班，须等到下班打卡开始时间再打下班卡 */
     WAIT_FOR_OUT,
     /** 今日打卡已齐或其他情况，不可操作 */
     BLOCKED,
 }
 
 /**
- * 打卡时段：由当前时钟与今日记录共同决定；周末与手动「休息」日均适用，不因日历状态拦截。
- * - 00:00–12:00（不含 12:00）：上班
- * - 12:00–17:30（不含 17:30）：非打卡；若今日尚无上班记录则允许补打上班卡
- * - 17:30–24:00（不含次日 0:00）：下班（无上班记录也可打下班卡）
+ * 打卡时段：由当前时钟、自定义规则与今日记录共同决定。
+ * - 上班窗口：[clockInStart, clockInEnd)
+ * - 非打卡窗口：[clockInEnd, clockOutStart)；若今日尚无上班记录则允许补打上班卡
+ * - 下班窗口：[clockOutStart, clockOutEnd]
  */
-object PunchTimeRules {
-    private val CLOCK_IN_END = LocalTime.NOON
-    private val CLOCK_OUT_START = LocalTime.of(17, 30)
+class PunchTimeRules(
+    private val config: PunchTimeConfig = PunchTimeConfig.DEFAULT,
+) {
+    val makeupInLabel: String = MAKEUP_IN_LABEL
+    val waitForOutLabel: String = WAIT_FOR_OUT_LABEL
+    val offHoursButton: String = OFF_HOURS_BUTTON
 
-    const val MAKEUP_IN_LABEL = "补打上班卡"
-    const val WAIT_FOR_OUT_LABEL = "等待下班打卡"
-    const val WAIT_FOR_OUT_HINT = "17:30 后可打下班卡"
-    const val OFF_HOURS_HINT = "12:00–17:30 为非打卡时段，请稍后再试"
-    const val OFF_HOURS_BUTTON = "非打卡时段"
+    val waitForOutHint: String
+        get() = "${PunchTimeConfig.formatMinutes(config.clockOutStartMinutes)} 后可打下班卡"
+
+    val offHoursHint: String
+        get() = "${PunchTimeConfig.formatMinutes(config.clockInEndMinutes)}–" +
+            "${PunchTimeConfig.formatMinutes(config.clockOutStartMinutes)} 为非打卡时段，请稍后再试"
 
     fun windowAt(millis: Long, zoneId: ZoneId = ZoneId.systemDefault()): PunchWindow {
         val time = Instant.ofEpochMilli(millis).atZone(zoneId).toLocalTime()
@@ -44,10 +49,12 @@ object PunchTimeRules {
     }
 
     fun windowAt(time: LocalTime): PunchWindow {
+        val minutes = PunchTimeConfig.localTimeToMinutes(time)
         return when {
-            time >= LocalTime.MIDNIGHT && time < CLOCK_IN_END -> PunchWindow.CLOCK_IN
-            time >= CLOCK_IN_END && time < CLOCK_OUT_START -> PunchWindow.OFF_HOURS
-            else -> PunchWindow.CLOCK_OUT
+            minutes >= config.clockInStartMinutes && minutes < config.clockInEndMinutes -> PunchWindow.CLOCK_IN
+            minutes >= config.clockOutStartMinutes && minutes <= config.clockOutEndMinutes -> PunchWindow.CLOCK_OUT
+            minutes >= config.clockInEndMinutes && minutes < config.clockOutStartMinutes -> PunchWindow.OFF_HOURS
+            else -> PunchWindow.OFF_HOURS
         }
     }
 
@@ -78,5 +85,13 @@ object PunchTimeRules {
                 else -> null
             }
         }
+    }
+
+    companion object {
+        const val MAKEUP_IN_LABEL = "补打上班卡"
+        const val WAIT_FOR_OUT_LABEL = "等待下班打卡"
+        const val OFF_HOURS_BUTTON = "非打卡时段"
+
+        fun default(): PunchTimeRules = PunchTimeRules(PunchTimeConfig.DEFAULT)
     }
 }
