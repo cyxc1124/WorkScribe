@@ -67,6 +67,31 @@ class WorkDurationCalculatorTest {
         assertEquals(8 * 60 * 60 * 1000L, WorkDurationCalculator.calculate(records, at(18, 0), false))
     }
 
+    @Test
+    fun hasCompletedSession_requiresBothInAndOut() {
+        assertEquals(
+            false,
+            WorkDurationCalculator.hasCompletedSession(
+                listOf(PunchRecord(id = 1, timestamp = at(9, 0), type = PunchType.IN)),
+            ),
+        )
+        assertEquals(
+            false,
+            WorkDurationCalculator.hasCompletedSession(
+                listOf(PunchRecord(id = 1, timestamp = at(18, 0), type = PunchType.OUT)),
+            ),
+        )
+        assertEquals(
+            true,
+            WorkDurationCalculator.hasCompletedSession(
+                listOf(
+                    PunchRecord(id = 1, timestamp = at(9, 0), type = PunchType.IN),
+                    PunchRecord(id = 2, timestamp = at(18, 0), type = PunchType.OUT),
+                ),
+            ),
+        )
+    }
+
     private fun at(hour: Int, minute: Int): Long =
         date.atTime(hour, minute).atZone(zoneId).toInstant().toEpochMilli()
 

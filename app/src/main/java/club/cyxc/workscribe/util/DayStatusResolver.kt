@@ -23,9 +23,50 @@ object DayStatusResolver {
         durationAnchorMillis: Long,
         includeOpenSession: Boolean,
     ): ResolvedDayStatus? {
-        manualType?.let { return it.toResolved() }
+        val auto = resolveAuto(date, records, durationAnchorMillis, includeOpenSession)
 
+        if (manualType != null) {
+            if (manualType == DayStatusType.OVERTIME && auto != ResolvedDayStatus.OVERTIME) {
+                return auto
+            }
+            return manualType.toResolved()
+        }
+
+        return auto
+    }
+
+    fun workDurationMillis(
+        records: List<PunchRecord>,
+        durationAnchorMillis: Long,
+        includeOpenSession: Boolean,
+    ): Long = WorkDurationCalculator.calculate(
+        records = records,
+        nowMillis = durationAnchorMillis,
+        includeOpenSession = includeOpenSession,
+    )
+
+    fun isStaleManualOvertime(
+        date: LocalDate,
+        records: List<PunchRecord>,
+        manualType: DayStatusType?,
+        durationAnchorMillis: Long,
+        includeOpenSession: Boolean,
+    ): Boolean {
+        if (manualType != DayStatusType.OVERTIME) return false
+        val auto = resolveAuto(date, records, durationAnchorMillis, includeOpenSession)
+        return auto != ResolvedDayStatus.OVERTIME
+    }
+
+    private fun resolveAuto(
+        date: LocalDate,
+        records: List<PunchRecord>,
+        durationAnchorMillis: Long,
+        includeOpenSession: Boolean,
+    ): ResolvedDayStatus? {
         if (records.isNotEmpty()) {
+            if (!WorkDurationCalculator.hasCompletedSession(records)) {
+                return ResolvedDayStatus.WORK
+            }
             val duration = WorkDurationCalculator.calculate(
                 records = records,
                 nowMillis = durationAnchorMillis,
@@ -44,16 +85,6 @@ object DayStatusResolver {
 
         return null
     }
-
-    fun workDurationMillis(
-        records: List<PunchRecord>,
-        durationAnchorMillis: Long,
-        includeOpenSession: Boolean,
-    ): Long = WorkDurationCalculator.calculate(
-        records = records,
-        nowMillis = durationAnchorMillis,
-        includeOpenSession = includeOpenSession,
-    )
 
     private fun DayStatusType.toResolved(): ResolvedDayStatus = when (this) {
         DayStatusType.WORK -> ResolvedDayStatus.WORK

@@ -71,6 +71,23 @@ class PunchRepositoryTest {
         assertEquals(at(8, 0), dao.records.find { it.id == 1L }!!.timestamp)
     }
 
+    @Test
+    fun makeupPunch_clearsStaleDayStatus() = runBlocking {
+        val dao = FakePunchDao()
+        val dayStatusDao = FakeDayStatusDao()
+        dayStatusDao.upsert(
+            DayStatus(
+                dateEpochDay = date.toEpochDay(),
+                type = DayStatusType.OVERTIME,
+            ),
+        )
+        val repository = PunchRepository(dao, dayStatusDao)
+
+        assertNull(repository.makeupPunch(PunchType.IN, at(9, 0), zoneId))
+
+        assertEquals(null, dayStatusDao.statuses[date.toEpochDay()])
+    }
+
     private fun at(hour: Int, minute: Int): Long =
         date.atTime(hour, minute).atZone(zoneId).toInstant().toEpochMilli()
 }
@@ -114,10 +131,20 @@ private class FakePunchDao : PunchDao {
 }
 
 private class FakeDayStatusDao : DayStatusDao {
-    override suspend fun upsert(status: DayStatus) = Unit
+    val statuses = mutableMapOf<Long, DayStatusType>()
 
-    override suspend fun deleteByDate(dateEpochDay: Long) = Unit
+    override suspend fun upsert(status: DayStatus) {
+        statuses[status.dateEpochDay] = status.type
+    }
+
+    override suspend fun deleteByDate(dateEpochDay: Long) {
+        statuses.remove(dateEpochDay)
+    }
 
     override fun observeInRange(startEpochDay: Long, endEpochDay: Long): Flow<List<DayStatus>> =
-        flowOf(emptyList())
+        flowOf(
+            statuses
+                .filterKeys { it in startEpochDay until endEpochDay }
+                .map { (epochDay, type) -> DayStatus(epochDay, type) },
+        )
 }

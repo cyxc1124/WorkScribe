@@ -51,6 +51,7 @@ class PunchRepository(
         } else {
             dao.insert(PunchRecord(timestamp = timestamp, type = type))
         }
+        dayStatusDao.deleteByDate(date.toEpochDay())
         return null
     }
 

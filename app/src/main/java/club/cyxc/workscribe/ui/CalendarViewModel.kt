@@ -89,6 +89,7 @@ class CalendarViewModel(
         }
         val sortedDayRecs = dayRecs.sortedByDescending { it.timestamp }
         val today = LocalDate.now(zoneId)
+        reconcileStaleManualOvertime(recordsByDate, gridStatuses, today)
         val selectedAnchor = durationAnchor(selected, today)
         val selectedIncludeOpen = selected == today
         val selectedManual = selected?.toEpochDay()?.let { gridStatuses[it] }
@@ -211,6 +212,32 @@ class CalendarViewModel(
 
     private fun buildMonthStrip(center: YearMonth): List<YearMonth> {
         return (-2..2).map { offset -> center.plusMonths(offset.toLong()) }
+    }
+
+    private fun reconcileStaleManualOvertime(
+        recordsByDate: Map<LocalDate, List<PunchRecord>>,
+        manualStatuses: Map<Long, DayStatusType>,
+        today: LocalDate,
+    ) {
+        manualStatuses.forEach { (epochDay, type) ->
+            if (type != DayStatusType.OVERTIME) return@forEach
+            val date = LocalDate.ofEpochDay(epochDay)
+            val records = recordsByDate[date].orEmpty()
+            val anchor = durationAnchor(date, today)
+            val includeOpenSession = date == today
+            if (DayStatusResolver.isStaleManualOvertime(
+                    date,
+                    records,
+                    type,
+                    anchor,
+                    includeOpenSession,
+                )
+            ) {
+                viewModelScope.launch {
+                    repository.clearDayStatus(date)
+                }
+            }
+        }
     }
 
     private fun durationAnchor(selected: LocalDate?, today: LocalDate): Long {

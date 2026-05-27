@@ -153,6 +153,96 @@ class DayStatusResolverTest {
         )
     }
 
+    @Test
+    fun makeupPunch_may25And26_singleInAtNineAm_showsWorkNotOvertime() {
+        val may25 = LocalDate.of(2026, 5, 25)
+        val may26 = LocalDate.of(2026, 5, 26)
+        listOf(may25, may26).forEach { date ->
+            val records = listOf(
+                PunchRecord(id = 1, timestamp = at(date, 9, 0), type = PunchType.IN),
+            )
+            assertEquals(
+                "Single makeup IN at 9:00 on $date should be WORK",
+                ResolvedDayStatus.WORK,
+                DayStatusResolver.resolve(
+                    date = date,
+                    records = records,
+                    manualType = null,
+                    durationAnchorMillis = anchorFor(date),
+                    includeOpenSession = false,
+                ),
+            )
+            assertEquals(
+                "Duration badge should not show 9 h for 9:00 AM punch alone",
+                0L,
+                DayStatusResolver.workDurationMillis(records, anchorFor(date), includeOpenSession = false),
+            )
+        }
+    }
+
+    @Test
+    fun openSessionOverEightHours_withoutClockOut_showsWorkNotOvertime() {
+        val records = listOf(
+            PunchRecord(id = 1, timestamp = at(monday, 9, 0), type = PunchType.IN),
+        )
+        val sixPm = at(monday, 18, 0)
+        assertEquals(
+            ResolvedDayStatus.WORK,
+            DayStatusResolver.resolve(
+                date = monday,
+                records = records,
+                manualType = null,
+                durationAnchorMillis = sixPm,
+                includeOpenSession = true,
+            ),
+        )
+    }
+
+    @Test
+    fun staleManualOvertime_withSingleMakeupIn_fallsBackToWork() {
+        val records = listOf(
+            PunchRecord(id = 1, timestamp = at(tuesday, 9, 0), type = PunchType.IN),
+        )
+        assertEquals(
+            ResolvedDayStatus.WORK,
+            DayStatusResolver.resolve(
+                date = tuesday,
+                records = records,
+                manualType = DayStatusType.OVERTIME,
+                durationAnchorMillis = anchorFor(tuesday),
+                includeOpenSession = false,
+            ),
+        )
+        assertEquals(
+            true,
+            DayStatusResolver.isStaleManualOvertime(
+                date = tuesday,
+                records = records,
+                manualType = DayStatusType.OVERTIME,
+                durationAnchorMillis = anchorFor(tuesday),
+                includeOpenSession = false,
+            ),
+        )
+    }
+
+    @Test
+    fun manualOvertime_withCompletedNineHourSession_isRespected() {
+        val records = listOf(
+            PunchRecord(id = 1, timestamp = at(monday, 9, 0), type = PunchType.IN),
+            PunchRecord(id = 2, timestamp = at(monday, 18, 0), type = PunchType.OUT),
+        )
+        assertEquals(
+            ResolvedDayStatus.OVERTIME,
+            DayStatusResolver.resolve(
+                date = monday,
+                records = records,
+                manualType = DayStatusType.OVERTIME,
+                durationAnchorMillis = anchorFor(monday),
+                includeOpenSession = false,
+            ),
+        )
+    }
+
     private fun anchorFor(date: LocalDate): Long =
         date.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli() - 1
 

@@ -43,4 +43,11 @@ object WorkDurationCalculator {
         val latest = records.maxByOrNull { it.timestamp } ?: return false
         return latest.type == PunchType.IN
     }
+
+    /** True when the day has at least one clock-in and one clock-out (completed session). */
+    fun hasCompletedSession(records: List<PunchRecord>): Boolean {
+        val hasIn = records.any { it.type == PunchType.IN }
+        val hasOut = records.any { it.type == PunchType.OUT }
+        return hasIn && hasOut
+    }
 }

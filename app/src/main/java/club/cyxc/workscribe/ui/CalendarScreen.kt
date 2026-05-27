@@ -504,7 +504,11 @@ private fun DayStatusSelector(
                 )
             }
             Text(
-                text = "自动：有打卡记录为上班/加班，周末无记录为休息（不影响打卡）",
+                text = if (manualStatus != null) {
+                    "已手动设置（点击「自动」恢复推断）"
+                } else {
+                    "自动：有完整上下班且工时超过 8 小时为加班，否则为上班"
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
