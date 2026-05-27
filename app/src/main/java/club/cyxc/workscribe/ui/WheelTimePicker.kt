@@ -5,7 +5,6 @@ import androidx.compose.foundation.gestures.snapping.SnapLayoutInfoProvider
 import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -207,7 +206,7 @@ private fun WheelPickerColumn(
             }
     }
 
-    BoxWithConstraints(
+    Box(
         modifier = modifier.height(wheelHeight),
         contentAlignment = Alignment.Center,
     ) {
