@@ -41,6 +41,7 @@ fun WorkScribeApp(
             ?: LocalDate.now().minusDays(1)
         MakeupPunchDialog(
             initialDate = initialDate,
+            recordsForDate = punchViewModel::observeRecordsForDate,
             onDismiss = { showMakeupPunch = false },
             onConfirm = { timestamp, type ->
                 punchViewModel.makeupPunch(timestamp, type) { error ->

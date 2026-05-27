@@ -23,6 +23,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -32,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import club.cyxc.workscribe.data.PunchRecord
 import club.cyxc.workscribe.data.PunchTimeConfig
 import club.cyxc.workscribe.data.PunchType
 import club.cyxc.workscribe.util.MakeupPunchValidator
@@ -39,11 +42,13 @@ import club.cyxc.workscribe.util.TimeFormatter
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlinx.coroutines.flow.Flow
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun MakeupPunchDialog(
     initialDate: LocalDate,
+    recordsForDate: (LocalDate) -> Flow<List<PunchRecord>>,
     onDismiss: () -> Unit,
     onConfirm: (timestamp: Long, type: PunchType) -> Unit,
     modifier: Modifier = Modifier,
@@ -57,6 +62,23 @@ fun MakeupPunchDialog(
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var validationError by remember { mutableStateOf<String?>(null) }
+
+    val dayRecords by remember(selectedDate) { recordsForDate(selectedDate) }
+        .collectAsState(initial = emptyList())
+
+    LaunchedEffect(selectedDate, selectedType, dayRecords) {
+        val existing = dayRecords
+            .filter { it.type == selectedType }
+            .maxByOrNull { it.timestamp }
+        if (existing != null) {
+            val time = Instant.ofEpochMilli(existing.timestamp).atZone(zoneId).toLocalTime()
+            selectedHour = time.hour
+            selectedMinute = time.minute
+        } else {
+            selectedHour = if (selectedType == PunchType.IN) 9 else 18
+            selectedMinute = 0
+        }
+    }
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(

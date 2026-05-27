@@ -9,6 +9,7 @@ import club.cyxc.workscribe.data.PunchSettingsRepository
 import club.cyxc.workscribe.data.PunchType
 import club.cyxc.workscribe.util.PunchTimeRules
 import club.cyxc.workscribe.util.WorkDurationCalculator
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -72,4 +73,7 @@ class PunchViewModel(
             onComplete(error)
         }
     }
+
+    fun observeRecordsForDate(date: LocalDate): Flow<List<PunchRecord>> =
+        repository.observeRecordsForDate(date, ZoneId.systemDefault())
 }

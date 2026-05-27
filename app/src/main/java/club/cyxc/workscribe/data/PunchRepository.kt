@@ -3,6 +3,7 @@ package club.cyxc.workscribe.data
 import club.cyxc.workscribe.util.MakeupPunchValidator
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
@@ -42,7 +43,14 @@ class PunchRepository(
 
     suspend fun makeupPunch(type: PunchType, timestamp: Long, zoneId: ZoneId = ZoneId.systemDefault()): String? {
         MakeupPunchValidator.validate(timestamp, zoneId)?.let { return it }
-        dao.insert(PunchRecord(timestamp = timestamp, type = type))
+        val date = Instant.ofEpochMilli(timestamp).atZone(zoneId).toLocalDate()
+        val (dayStart, dayEnd) = dayBounds(date, zoneId)
+        val existing = dao.findLatestRecordForDayAndType(dayStart, dayEnd, type)
+        if (existing != null) {
+            dao.update(existing.copy(timestamp = timestamp))
+        } else {
+            dao.insert(PunchRecord(timestamp = timestamp, type = type))
+        }
         return null
     }
 
