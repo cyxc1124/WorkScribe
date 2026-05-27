@@ -21,11 +21,16 @@ object DayStatusResolver {
         records: List<PunchRecord>,
         manualType: DayStatusType?,
         durationAnchorMillis: Long,
+        includeOpenSession: Boolean,
     ): ResolvedDayStatus? {
         manualType?.let { return it.toResolved() }
 
         if (records.isNotEmpty()) {
-            val duration = WorkDurationCalculator.calculate(records, durationAnchorMillis)
+            val duration = WorkDurationCalculator.calculate(
+                records = records,
+                nowMillis = durationAnchorMillis,
+                includeOpenSession = includeOpenSession,
+            )
             return if (duration > STANDARD_WORK_MILLIS) {
                 ResolvedDayStatus.OVERTIME
             } else {
@@ -43,7 +48,12 @@ object DayStatusResolver {
     fun workDurationMillis(
         records: List<PunchRecord>,
         durationAnchorMillis: Long,
-    ): Long = WorkDurationCalculator.calculate(records, durationAnchorMillis)
+        includeOpenSession: Boolean,
+    ): Long = WorkDurationCalculator.calculate(
+        records = records,
+        nowMillis = durationAnchorMillis,
+        includeOpenSession = includeOpenSession,
+    )
 
     private fun DayStatusType.toResolved(): ResolvedDayStatus = when (this) {
         DayStatusType.WORK -> ResolvedDayStatus.WORK

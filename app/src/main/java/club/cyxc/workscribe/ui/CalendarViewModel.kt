@@ -88,7 +88,9 @@ class CalendarViewModel(
             Instant.ofEpochMilli(record.timestamp).atZone(zoneId).toLocalDate()
         }
         val sortedDayRecs = dayRecs.sortedByDescending { it.timestamp }
-        val selectedAnchor = durationAnchor(selected)
+        val today = LocalDate.now(zoneId)
+        val selectedAnchor = durationAnchor(selected, today)
+        val selectedIncludeOpen = selected == today
         val selectedManual = selected?.toEpochDay()?.let { gridStatuses[it] }
         val selectedStatus = selected?.let { date ->
             DayStatusResolver.resolve(
@@ -96,6 +98,7 @@ class CalendarViewModel(
                 records = sortedDayRecs,
                 manualType = selectedManual,
                 durationAnchorMillis = selectedAnchor,
+                includeOpenSession = selectedIncludeOpen,
             )
         }
         CalendarUiState(
@@ -105,13 +108,18 @@ class CalendarViewModel(
             gridDays = buildGridDays(
                 month = month,
                 selected = selected,
+                today = today,
                 recordsByDate = recordsByDate,
                 manualStatuses = gridStatuses,
             ),
             selectedDayRecords = sortedDayRecs,
             selectedDayStatus = selectedStatus,
             selectedDayManualStatus = selectedManual,
-            workDurationMillis = DayStatusResolver.workDurationMillis(sortedDayRecs, selectedAnchor),
+            workDurationMillis = DayStatusResolver.workDurationMillis(
+                sortedDayRecs,
+                selectedAnchor,
+                selectedIncludeOpen,
+            ),
         )
     }.stateIn(
         scope = viewModelScope,
@@ -160,10 +168,10 @@ class CalendarViewModel(
     private fun buildGridDays(
         month: YearMonth,
         selected: LocalDate?,
+        today: LocalDate,
         recordsByDate: Map<LocalDate, List<PunchRecord>>,
         manualStatuses: Map<Long, DayStatusType>,
     ): List<CalendarDayCell> {
-        val today = LocalDate.now(zoneId)
         val (gridStart, _) = monthGridBounds(month)
         val daysInMonth = month.lengthOfMonth()
         val firstDay = month.atDay(1)
@@ -176,15 +184,26 @@ class CalendarViewModel(
             val date = gridStart.plusDays(index.toLong())
             val records = recordsByDate[date].orEmpty()
             val manual = manualStatuses[date.toEpochDay()]
-            val anchor = durationAnchor(date)
+            val anchor = durationAnchor(date, today)
+            val includeOpenSession = date == today
             CalendarDayCell(
                 date = date,
                 dayOfMonth = date.dayOfMonth,
                 isCurrentMonth = YearMonth.from(date) == month,
                 isToday = date == today,
                 isSelected = date == selected,
-                status = DayStatusResolver.resolve(date, records, manual, anchor),
-                workDurationMillis = DayStatusResolver.workDurationMillis(records, anchor),
+                status = DayStatusResolver.resolve(
+                    date,
+                    records,
+                    manual,
+                    anchor,
+                    includeOpenSession,
+                ),
+                workDurationMillis = DayStatusResolver.workDurationMillis(
+                    records,
+                    anchor,
+                    includeOpenSession,
+                ),
                 manualStatus = manual,
             )
         }
@@ -194,9 +213,8 @@ class CalendarViewModel(
         return (-2..2).map { offset -> center.plusMonths(offset.toLong()) }
     }
 
-    private fun durationAnchor(selected: LocalDate?): Long {
+    private fun durationAnchor(selected: LocalDate?, today: LocalDate): Long {
         if (selected == null) return System.currentTimeMillis()
-        val today = LocalDate.now(zoneId)
         return when {
             selected.isAfter(today) -> selected.atStartOfDay(zoneId).toInstant().toEpochMilli()
             selected.isBefore(today) -> {

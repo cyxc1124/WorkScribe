@@ -14,6 +14,7 @@ class DayStatusResolverTest {
     private val zoneId = ZoneId.systemDefault()
     private val saturday = LocalDate.of(2026, 5, 23) // Saturday
     private val monday = LocalDate.of(2026, 5, 25)
+    private val tuesday = LocalDate.of(2026, 5, 26)
 
     @Test
     fun weekendWithoutRecords_showsRestForCalendarOnly() {
@@ -24,6 +25,7 @@ class DayStatusResolverTest {
                 records = emptyList(),
                 manualType = null,
                 durationAnchorMillis = anchorFor(saturday),
+                includeOpenSession = false,
             ),
         )
     }
@@ -41,6 +43,7 @@ class DayStatusResolverTest {
                 records = records,
                 manualType = null,
                 durationAnchorMillis = anchorFor(saturday),
+                includeOpenSession = false,
             ),
         )
     }
@@ -54,6 +57,7 @@ class DayStatusResolverTest {
                 records = emptyList(),
                 manualType = DayStatusType.REST,
                 durationAnchorMillis = anchorFor(monday),
+                includeOpenSession = false,
             ),
         )
     }
@@ -66,6 +70,85 @@ class DayStatusResolverTest {
                 records = emptyList(),
                 manualType = null,
                 durationAnchorMillis = anchorFor(monday),
+                includeOpenSession = false,
+            ),
+        )
+    }
+
+    @Test
+    fun makeupPunch_singleInOnPastDay_showsWorkNotOvertime() {
+        val records = listOf(
+            PunchRecord(id = 1, timestamp = at(tuesday, 9, 0), type = PunchType.IN),
+        )
+        assertEquals(
+            ResolvedDayStatus.WORK,
+            DayStatusResolver.resolve(
+                date = tuesday,
+                records = records,
+                manualType = null,
+                durationAnchorMillis = anchorFor(tuesday),
+                includeOpenSession = false,
+            ),
+        )
+        assertEquals(
+            0L,
+            DayStatusResolver.workDurationMillis(records, anchorFor(tuesday), includeOpenSession = false),
+        )
+    }
+
+    @Test
+    fun makeupPunch_singleOutOnPastDay_showsWorkWithZeroDuration() {
+        val records = listOf(
+            PunchRecord(id = 1, timestamp = at(monday, 18, 0), type = PunchType.OUT),
+        )
+        assertEquals(
+            ResolvedDayStatus.WORK,
+            DayStatusResolver.resolve(
+                date = monday,
+                records = records,
+                manualType = null,
+                durationAnchorMillis = anchorFor(monday),
+                includeOpenSession = false,
+            ),
+        )
+        assertEquals(
+            0L,
+            DayStatusResolver.workDurationMillis(records, anchorFor(monday), includeOpenSession = false),
+        )
+    }
+
+    @Test
+    fun makeupPunch_completedEightHourDay_showsWorkNotOvertime() {
+        val records = listOf(
+            PunchRecord(id = 1, timestamp = at(monday, 9, 0), type = PunchType.IN),
+            PunchRecord(id = 2, timestamp = at(monday, 17, 0), type = PunchType.OUT),
+        )
+        assertEquals(
+            ResolvedDayStatus.WORK,
+            DayStatusResolver.resolve(
+                date = monday,
+                records = records,
+                manualType = null,
+                durationAnchorMillis = anchorFor(monday),
+                includeOpenSession = false,
+            ),
+        )
+    }
+
+    @Test
+    fun makeupPunch_completedNineHourDay_showsOvertime() {
+        val records = listOf(
+            PunchRecord(id = 1, timestamp = at(monday, 9, 0), type = PunchType.IN),
+            PunchRecord(id = 2, timestamp = at(monday, 18, 0), type = PunchType.OUT),
+        )
+        assertEquals(
+            ResolvedDayStatus.OVERTIME,
+            DayStatusResolver.resolve(
+                date = monday,
+                records = records,
+                manualType = null,
+                durationAnchorMillis = anchorFor(monday),
+                includeOpenSession = false,
             ),
         )
     }

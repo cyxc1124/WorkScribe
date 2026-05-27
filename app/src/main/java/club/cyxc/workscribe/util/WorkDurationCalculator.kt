@@ -4,7 +4,16 @@ import club.cyxc.workscribe.data.PunchRecord
 import club.cyxc.workscribe.data.PunchType
 
 object WorkDurationCalculator {
-    fun calculate(records: List<PunchRecord>, nowMillis: Long = System.currentTimeMillis()): Long {
+    /**
+     * @param nowMillis Upper bound for an open IN session (typically now for today, end-of-day for past dates).
+     * @param includeOpenSession When false, an unmatched IN is ignored (historical / makeup days).
+     *                           When true, duration from the last open IN to [nowMillis] is included (today).
+     */
+    fun calculate(
+        records: List<PunchRecord>,
+        nowMillis: Long = System.currentTimeMillis(),
+        includeOpenSession: Boolean = true,
+    ): Long {
         val sorted = records.sortedBy { it.timestamp }
         var total = 0L
         var lastIn: Long? = null
@@ -21,8 +30,10 @@ object WorkDurationCalculator {
             }
         }
 
-        lastIn?.let { inTime ->
-            total += nowMillis - inTime
+        if (includeOpenSession) {
+            lastIn?.let { inTime ->
+                total += nowMillis - inTime
+            }
         }
 
         return total.coerceAtLeast(0)
