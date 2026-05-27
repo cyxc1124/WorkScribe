@@ -136,7 +136,25 @@ class DayStatusResolverTest {
     }
 
     @Test
-    fun makeupPunch_completedNineHourDay_showsOvertime() {
+    fun makeupPunch_completedNineHourDay_showsWorkAfterLunchDeduction() {
+        val records = listOf(
+            PunchRecord(id = 1, timestamp = at(monday, 9, 0), type = PunchType.IN),
+            PunchRecord(id = 2, timestamp = at(monday, 18, 0), type = PunchType.OUT),
+        )
+        assertEquals(
+            ResolvedDayStatus.WORK,
+            DayStatusResolver.resolve(
+                date = monday,
+                records = records,
+                manualType = null,
+                durationAnchorMillis = anchorFor(monday),
+                includeOpenSession = false,
+            ),
+        )
+    }
+
+    @Test
+    fun makeupPunch_completedNineHourDay_showsOvertimeWhenLunchDisabled() {
         val records = listOf(
             PunchRecord(id = 1, timestamp = at(monday, 9, 0), type = PunchType.IN),
             PunchRecord(id = 2, timestamp = at(monday, 18, 0), type = PunchType.OUT),
@@ -149,6 +167,7 @@ class DayStatusResolverTest {
                 manualType = null,
                 durationAnchorMillis = anchorFor(monday),
                 includeOpenSession = false,
+                lunchBreakEnabled = false,
             ),
         )
     }
@@ -226,10 +245,10 @@ class DayStatusResolverTest {
     }
 
     @Test
-    fun manualOvertime_withCompletedNineHourSession_isRespected() {
+    fun manualOvertime_withCompletedTenHourSession_isRespected() {
         val records = listOf(
             PunchRecord(id = 1, timestamp = at(monday, 9, 0), type = PunchType.IN),
-            PunchRecord(id = 2, timestamp = at(monday, 18, 0), type = PunchType.OUT),
+            PunchRecord(id = 2, timestamp = at(monday, 19, 0), type = PunchType.OUT),
         )
         assertEquals(
             ResolvedDayStatus.OVERTIME,

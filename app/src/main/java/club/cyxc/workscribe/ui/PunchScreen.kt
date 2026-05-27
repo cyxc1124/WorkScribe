@@ -76,8 +76,18 @@ fun PunchScreen(
         }
     }
 
-    val liveDuration = remember(uiState.todayRecords, nowMillis) {
-        WorkDurationCalculator.calculate(uiState.todayRecords, nowMillis)
+    val liveDuration = remember(
+        uiState.todayRecords,
+        uiState.lunchBreakEnabled,
+        uiState.lunchBreakMinutes,
+        nowMillis,
+    ) {
+        WorkDurationCalculator.calculate(
+            uiState.todayRecords,
+            nowMillis,
+            lunchBreakEnabled = uiState.lunchBreakEnabled,
+            lunchBreakMinutes = uiState.lunchBreakMinutes,
+        )
     }
 
     Scaffold(

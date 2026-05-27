@@ -25,7 +25,7 @@ class MainActivity : ComponentActivity() {
 
     private val calendarViewModel: CalendarViewModel by viewModels {
         viewModelFactory {
-            CalendarViewModel(application, app.repository)
+            CalendarViewModel(application, app.repository, app.settingsRepository)
         }
     }
 

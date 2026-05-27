@@ -24,6 +24,8 @@ data class PunchUiState(
     val workDurationMillis: Long = 0L,
     val today: LocalDate = LocalDate.now(),
     val punchTimeRules: PunchTimeRules = PunchTimeRules.default(),
+    val lunchBreakEnabled: Boolean = true,
+    val lunchBreakMinutes: Int = 60,
 )
 
 class PunchViewModel(
@@ -40,9 +42,15 @@ class PunchViewModel(
         PunchUiState(
             todayRecords = todayRecords.sortedByDescending { it.timestamp },
             isWorking = isWorking,
-            workDurationMillis = WorkDurationCalculator.calculate(todayRecords),
+            workDurationMillis = WorkDurationCalculator.calculate(
+                todayRecords,
+                lunchBreakEnabled = config.lunchBreakEnabled,
+                lunchBreakMinutes = config.lunchBreakMinutes,
+            ),
             today = LocalDate.now(),
             punchTimeRules = PunchTimeRules(config),
+            lunchBreakEnabled = config.lunchBreakEnabled,
+            lunchBreakMinutes = config.lunchBreakMinutes,
         )
     }.stateIn(
         scope = viewModelScope,

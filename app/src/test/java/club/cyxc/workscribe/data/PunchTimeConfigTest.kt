@@ -37,4 +37,23 @@ class PunchTimeConfigTest {
         )
         assertEquals("上班结束时间不能晚于下班开始时间", config.validate())
     }
+
+    @Test
+    fun validate_rejectsLunchBreakOutOfRange() {
+        val config = PunchTimeConfig(
+            lunchBreakEnabled = true,
+            lunchBreakMinutes = 10,
+        )
+        assertEquals("午休时长须在 15–240 分钟之间", config.validate())
+    }
+
+    @Test
+    fun validate_allowsDisabledLunchWithAnyStoredMinutes() {
+        assertNull(
+            PunchTimeConfig(
+                lunchBreakEnabled = false,
+                lunchBreakMinutes = 10,
+            ).validate(),
+        )
+    }
 }

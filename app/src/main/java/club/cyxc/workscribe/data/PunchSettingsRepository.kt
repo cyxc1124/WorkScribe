@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -22,6 +23,8 @@ class PunchSettingsRepository(
             clockInEndMinutes = preferences[CLOCK_IN_END] ?: PunchTimeConfig.DEFAULT_CLOCK_IN_END_MINUTES,
             clockOutStartMinutes = preferences[CLOCK_OUT_START] ?: PunchTimeConfig.DEFAULT_CLOCK_OUT_START_MINUTES,
             clockOutEndMinutes = preferences[CLOCK_OUT_END] ?: PunchTimeConfig.DEFAULT_CLOCK_OUT_END_MINUTES,
+            lunchBreakEnabled = preferences[LUNCH_BREAK_ENABLED] ?: PunchTimeConfig.DEFAULT_LUNCH_BREAK_ENABLED,
+            lunchBreakMinutes = preferences[LUNCH_BREAK_MINUTES] ?: PunchTimeConfig.DEFAULT_LUNCH_BREAK_MINUTES,
         )
     }
 
@@ -33,6 +36,8 @@ class PunchSettingsRepository(
             preferences[CLOCK_IN_END] = config.clockInEndMinutes
             preferences[CLOCK_OUT_START] = config.clockOutStartMinutes
             preferences[CLOCK_OUT_END] = config.clockOutEndMinutes
+            preferences[LUNCH_BREAK_ENABLED] = config.lunchBreakEnabled
+            preferences[LUNCH_BREAK_MINUTES] = config.lunchBreakMinutes
         }
     }
 
@@ -41,6 +46,8 @@ class PunchSettingsRepository(
         private val CLOCK_IN_END = intPreferencesKey("clock_in_end_minutes")
         private val CLOCK_OUT_START = intPreferencesKey("clock_out_start_minutes")
         private val CLOCK_OUT_END = intPreferencesKey("clock_out_end_minutes")
+        private val LUNCH_BREAK_ENABLED = booleanPreferencesKey("lunch_break_enabled")
+        private val LUNCH_BREAK_MINUTES = intPreferencesKey("lunch_break_minutes")
 
         fun from(context: Context): PunchSettingsRepository {
             return PunchSettingsRepository(context.punchSettingsDataStore)

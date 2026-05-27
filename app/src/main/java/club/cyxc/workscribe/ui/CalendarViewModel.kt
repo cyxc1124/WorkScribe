@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import club.cyxc.workscribe.data.DayStatusType
 import club.cyxc.workscribe.data.PunchRecord
 import club.cyxc.workscribe.data.PunchRepository
+import club.cyxc.workscribe.data.PunchSettingsRepository
+import club.cyxc.workscribe.data.PunchTimeConfig
 import club.cyxc.workscribe.util.DayStatusResolver
 import club.cyxc.workscribe.util.ResolvedDayStatus
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,10 +46,19 @@ data class CalendarUiState(
     val workDurationMillis: Long = 0L,
 )
 
+private data class CalendarGridInputs(
+    val month: YearMonth,
+    val selected: LocalDate?,
+    val gridRecords: List<PunchRecord>,
+    val gridDayStatuses: Map<Long, DayStatusType>,
+    val selectedDayRecords: List<PunchRecord>,
+)
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class CalendarViewModel(
     application: Application,
     private val repository: PunchRepository,
+    private val settingsRepository: PunchSettingsRepository,
 ) : AndroidViewModel(application) {
 
     private val zoneId = ZoneId.systemDefault()
@@ -78,18 +89,28 @@ class CalendarViewModel(
     }
 
     val uiState: StateFlow<CalendarUiState> = combine(
-        _currentMonth,
-        _selectedDate,
-        gridRecords,
-        gridDayStatuses,
-        selectedDayRecords,
-    ) { month, selected, gridRecs, gridStatuses, dayRecs ->
+        combine(
+            _currentMonth,
+            _selectedDate,
+            gridRecords,
+            gridDayStatuses,
+            selectedDayRecords,
+        ) { month, selected, gridRecs, gridStatuses, dayRecs ->
+            CalendarGridInputs(month, selected, gridRecs, gridStatuses, dayRecs)
+        },
+        settingsRepository.configFlow,
+    ) { inputs, config ->
+        val month = inputs.month
+        val selected = inputs.selected
+        val gridRecs = inputs.gridRecords
+        val gridStatuses = inputs.gridDayStatuses
+        val dayRecs = inputs.selectedDayRecords
         val recordsByDate = gridRecs.groupBy { record ->
             Instant.ofEpochMilli(record.timestamp).atZone(zoneId).toLocalDate()
         }
         val sortedDayRecs = dayRecs.sortedByDescending { it.timestamp }
         val today = LocalDate.now(zoneId)
-        reconcileStaleManualOvertime(recordsByDate, gridStatuses, today)
+        reconcileStaleManualOvertime(recordsByDate, gridStatuses, today, config)
         val selectedAnchor = durationAnchor(selected, today)
         val selectedIncludeOpen = selected == today
         val selectedManual = selected?.toEpochDay()?.let { gridStatuses[it] }
@@ -100,6 +121,8 @@ class CalendarViewModel(
                 manualType = selectedManual,
                 durationAnchorMillis = selectedAnchor,
                 includeOpenSession = selectedIncludeOpen,
+                lunchBreakEnabled = config.lunchBreakEnabled,
+                lunchBreakMinutes = config.lunchBreakMinutes,
             )
         }
         CalendarUiState(
@@ -112,6 +135,8 @@ class CalendarViewModel(
                 today = today,
                 recordsByDate = recordsByDate,
                 manualStatuses = gridStatuses,
+                lunchBreakEnabled = config.lunchBreakEnabled,
+                lunchBreakMinutes = config.lunchBreakMinutes,
             ),
             selectedDayRecords = sortedDayRecs,
             selectedDayStatus = selectedStatus,
@@ -120,6 +145,8 @@ class CalendarViewModel(
                 sortedDayRecs,
                 selectedAnchor,
                 selectedIncludeOpen,
+                config.lunchBreakEnabled,
+                config.lunchBreakMinutes,
             ),
         )
     }.stateIn(
@@ -172,6 +199,8 @@ class CalendarViewModel(
         today: LocalDate,
         recordsByDate: Map<LocalDate, List<PunchRecord>>,
         manualStatuses: Map<Long, DayStatusType>,
+        lunchBreakEnabled: Boolean,
+        lunchBreakMinutes: Int,
     ): List<CalendarDayCell> {
         val (gridStart, _) = monthGridBounds(month)
         val daysInMonth = month.lengthOfMonth()
@@ -199,11 +228,15 @@ class CalendarViewModel(
                     manual,
                     anchor,
                     includeOpenSession,
+                    lunchBreakEnabled,
+                    lunchBreakMinutes,
                 ),
                 workDurationMillis = DayStatusResolver.workDurationMillis(
                     records,
                     anchor,
                     includeOpenSession,
+                    lunchBreakEnabled,
+                    lunchBreakMinutes,
                 ),
                 manualStatus = manual,
             )
@@ -218,6 +251,7 @@ class CalendarViewModel(
         recordsByDate: Map<LocalDate, List<PunchRecord>>,
         manualStatuses: Map<Long, DayStatusType>,
         today: LocalDate,
+        config: PunchTimeConfig,
     ) {
         manualStatuses.forEach { (epochDay, type) ->
             if (type != DayStatusType.OVERTIME) return@forEach
@@ -231,6 +265,8 @@ class CalendarViewModel(
                     type,
                     anchor,
                     includeOpenSession,
+                    config.lunchBreakEnabled,
+                    config.lunchBreakMinutes,
                 )
             ) {
                 viewModelScope.launch {

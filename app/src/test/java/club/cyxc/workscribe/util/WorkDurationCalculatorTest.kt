@@ -13,12 +13,38 @@ class WorkDurationCalculatorTest {
     private val date = LocalDate.of(2026, 5, 25)
 
     @Test
-    fun completedPair_countsDuration() {
+    fun completedPair_withDefaultLunch_deductsOneHour() {
         val records = listOf(
             PunchRecord(id = 1, timestamp = at(9, 0), type = PunchType.IN),
             PunchRecord(id = 2, timestamp = at(18, 0), type = PunchType.OUT),
         )
-        assertEquals(9 * 60 * 60 * 1000L, WorkDurationCalculator.calculate(records, at(18, 0), false))
+        assertEquals(8 * 60 * 60 * 1000L, WorkDurationCalculator.calculate(records, at(18, 0), false))
+    }
+
+    @Test
+    fun completedPair_withoutLunch_countsGrossDuration() {
+        val records = listOf(
+            PunchRecord(id = 1, timestamp = at(9, 0), type = PunchType.IN),
+            PunchRecord(id = 2, timestamp = at(18, 0), type = PunchType.OUT),
+        )
+        assertEquals(
+            9 * 60 * 60 * 1000L,
+            WorkDurationCalculator.calculate(
+                records,
+                at(18, 0),
+                includeOpenSession = false,
+                lunchBreakEnabled = false,
+            ),
+        )
+    }
+
+    @Test
+    fun completedPair_shorterThanLunch_doesNotGoNegative() {
+        val records = listOf(
+            PunchRecord(id = 1, timestamp = at(9, 0), type = PunchType.IN),
+            PunchRecord(id = 2, timestamp = at(9, 30), type = PunchType.OUT),
+        )
+        assertEquals(30 * 60 * 1000L, WorkDurationCalculator.calculate(records, at(9, 30), false))
     }
 
     @Test
@@ -36,16 +62,22 @@ class WorkDurationCalculatorTest {
             PunchRecord(id = 1, timestamp = at(9, 0), type = PunchType.IN),
         )
         val endOfDay = endOf(date)
-        assertEquals(endOfDay - at(9, 0), WorkDurationCalculator.calculate(records, endOfDay, includeOpenSession = true))
+        assertEquals(
+            endOfDay - at(9, 0) - 60 * 60 * 1000L,
+            WorkDurationCalculator.calculate(records, endOfDay, includeOpenSession = true),
+        )
     }
 
     @Test
-    fun today_openIn_countsToNowWhenOpenSessionIncluded() {
+    fun today_openIn_countsToNowWithLunchDeduction() {
         val records = listOf(
             PunchRecord(id = 1, timestamp = at(9, 0), type = PunchType.IN),
         )
         val now = at(18, 0)
-        assertEquals(now - at(9, 0), WorkDurationCalculator.calculate(records, now, includeOpenSession = true))
+        assertEquals(
+            now - at(9, 0) - 60 * 60 * 1000L,
+            WorkDurationCalculator.calculate(records, now, includeOpenSession = true),
+        )
     }
 
     @Test
@@ -57,7 +89,7 @@ class WorkDurationCalculatorTest {
     }
 
     @Test
-    fun multiplePairs_sumsCompletedSegments() {
+    fun multiplePairs_withLunchGap_doesNotDoubleDeduct() {
         val records = listOf(
             PunchRecord(id = 1, timestamp = at(9, 0), type = PunchType.IN),
             PunchRecord(id = 2, timestamp = at(12, 0), type = PunchType.OUT),
@@ -65,6 +97,24 @@ class WorkDurationCalculatorTest {
             PunchRecord(id = 4, timestamp = at(18, 0), type = PunchType.OUT),
         )
         assertEquals(8 * 60 * 60 * 1000L, WorkDurationCalculator.calculate(records, at(18, 0), false))
+    }
+
+    @Test
+    fun customLunchDuration_isRespected() {
+        val records = listOf(
+            PunchRecord(id = 1, timestamp = at(9, 0), type = PunchType.IN),
+            PunchRecord(id = 2, timestamp = at(18, 0), type = PunchType.OUT),
+        )
+        assertEquals(
+            8 * 60 * 60 * 1000L + 30 * 60 * 1000L,
+            WorkDurationCalculator.calculate(
+                records,
+                at(18, 0),
+                includeOpenSession = false,
+                lunchBreakEnabled = true,
+                lunchBreakMinutes = 30,
+            ),
+        )
     }
 
     @Test

@@ -2,6 +2,7 @@ package club.cyxc.workscribe.util
 
 import club.cyxc.workscribe.data.DayStatusType
 import club.cyxc.workscribe.data.PunchRecord
+import club.cyxc.workscribe.data.PunchTimeConfig
 import java.time.DayOfWeek
 import java.time.LocalDate
 
@@ -22,8 +23,17 @@ object DayStatusResolver {
         manualType: DayStatusType?,
         durationAnchorMillis: Long,
         includeOpenSession: Boolean,
+        lunchBreakEnabled: Boolean = PunchTimeConfig.DEFAULT_LUNCH_BREAK_ENABLED,
+        lunchBreakMinutes: Int = PunchTimeConfig.DEFAULT_LUNCH_BREAK_MINUTES,
     ): ResolvedDayStatus? {
-        val auto = resolveAuto(date, records, durationAnchorMillis, includeOpenSession)
+        val auto = resolveAuto(
+            date,
+            records,
+            durationAnchorMillis,
+            includeOpenSession,
+            lunchBreakEnabled,
+            lunchBreakMinutes,
+        )
 
         if (manualType != null) {
             if (manualType == DayStatusType.OVERTIME && auto != ResolvedDayStatus.OVERTIME) {
@@ -39,10 +49,14 @@ object DayStatusResolver {
         records: List<PunchRecord>,
         durationAnchorMillis: Long,
         includeOpenSession: Boolean,
+        lunchBreakEnabled: Boolean = PunchTimeConfig.DEFAULT_LUNCH_BREAK_ENABLED,
+        lunchBreakMinutes: Int = PunchTimeConfig.DEFAULT_LUNCH_BREAK_MINUTES,
     ): Long = WorkDurationCalculator.calculate(
         records = records,
         nowMillis = durationAnchorMillis,
         includeOpenSession = includeOpenSession,
+        lunchBreakEnabled = lunchBreakEnabled,
+        lunchBreakMinutes = lunchBreakMinutes,
     )
 
     fun isStaleManualOvertime(
@@ -51,9 +65,18 @@ object DayStatusResolver {
         manualType: DayStatusType?,
         durationAnchorMillis: Long,
         includeOpenSession: Boolean,
+        lunchBreakEnabled: Boolean = PunchTimeConfig.DEFAULT_LUNCH_BREAK_ENABLED,
+        lunchBreakMinutes: Int = PunchTimeConfig.DEFAULT_LUNCH_BREAK_MINUTES,
     ): Boolean {
         if (manualType != DayStatusType.OVERTIME) return false
-        val auto = resolveAuto(date, records, durationAnchorMillis, includeOpenSession)
+        val auto = resolveAuto(
+            date,
+            records,
+            durationAnchorMillis,
+            includeOpenSession,
+            lunchBreakEnabled,
+            lunchBreakMinutes,
+        )
         return auto != ResolvedDayStatus.OVERTIME
     }
 
@@ -62,6 +85,8 @@ object DayStatusResolver {
         records: List<PunchRecord>,
         durationAnchorMillis: Long,
         includeOpenSession: Boolean,
+        lunchBreakEnabled: Boolean,
+        lunchBreakMinutes: Int,
     ): ResolvedDayStatus? {
         if (records.isNotEmpty()) {
             if (!WorkDurationCalculator.hasCompletedSession(records)) {
@@ -71,6 +96,8 @@ object DayStatusResolver {
                 records = records,
                 nowMillis = durationAnchorMillis,
                 includeOpenSession = includeOpenSession,
+                lunchBreakEnabled = lunchBreakEnabled,
+                lunchBreakMinutes = lunchBreakMinutes,
             )
             return if (duration > STANDARD_WORK_MILLIS) {
                 ResolvedDayStatus.OVERTIME

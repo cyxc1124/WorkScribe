@@ -62,6 +62,8 @@ fun WorkScribeApp(
             onUpdateClockInEnd = settingsViewModel::updateClockInEnd,
             onUpdateClockOutStart = settingsViewModel::updateClockOutStart,
             onUpdateClockOutEnd = settingsViewModel::updateClockOutEnd,
+            onUpdateLunchBreakEnabled = settingsViewModel::updateLunchBreakEnabled,
+            onUpdateLunchBreakMinutes = settingsViewModel::updateLunchBreakMinutes,
             onResetToDefaults = settingsViewModel::resetToDefaults,
             onSave = settingsViewModel::save,
             modifier = modifier,

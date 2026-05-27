@@ -23,6 +23,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -42,6 +43,7 @@ private enum class TimeField {
     CLOCK_IN_END,
     CLOCK_OUT_START,
     CLOCK_OUT_END,
+    LUNCH_BREAK_DURATION,
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,6 +55,8 @@ fun SettingsScreen(
     onUpdateClockInEnd: (Int) -> Unit,
     onUpdateClockOutStart: (Int) -> Unit,
     onUpdateClockOutEnd: (Int) -> Unit,
+    onUpdateLunchBreakEnabled: (Boolean) -> Unit,
+    onUpdateLunchBreakMinutes: (Int) -> Unit,
     onResetToDefaults: () -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
@@ -112,6 +116,14 @@ fun SettingsScreen(
                     endMinutes = uiState.clockOutEndMinutes,
                     onEditStart = { editingField = TimeField.CLOCK_OUT_START },
                     onEditEnd = { editingField = TimeField.CLOCK_OUT_END },
+                )
+            }
+            item {
+                LunchBreakSection(
+                    enabled = uiState.lunchBreakEnabled,
+                    lunchBreakMinutes = uiState.lunchBreakMinutes,
+                    onToggleEnabled = onUpdateLunchBreakEnabled,
+                    onEditDuration = { editingField = TimeField.LUNCH_BREAK_DURATION },
                 )
             }
             item {
@@ -190,6 +202,7 @@ fun SettingsScreen(
             TimeField.CLOCK_IN_END -> uiState.clockInEndMinutes
             TimeField.CLOCK_OUT_START -> uiState.clockOutStartMinutes
             TimeField.CLOCK_OUT_END -> uiState.clockOutEndMinutes
+            TimeField.LUNCH_BREAK_DURATION -> uiState.lunchBreakMinutes
         }
         val initialTime = PunchTimeConfig.minutesToLocalTime(initialMinutes)
         val title = when (field) {
@@ -197,12 +210,18 @@ fun SettingsScreen(
             TimeField.CLOCK_IN_END -> "上班打卡结束时间"
             TimeField.CLOCK_OUT_START -> "下班打卡开始时间"
             TimeField.CLOCK_OUT_END -> "下班打卡结束时间"
+            TimeField.LUNCH_BREAK_DURATION -> "午休时长"
+        }
+        val subtitle = when (field) {
+            TimeField.LUNCH_BREAK_DURATION -> "从工作时段中间自动扣除"
+            else -> "滑动选择小时与分钟"
         }
 
         WheelTimePickerBottomSheet(
             title = title,
             initialHour = initialTime.hour,
             initialMinute = initialTime.minute,
+            subtitle = subtitle,
             onDismiss = { editingField = null },
             onConfirm = { hour, minute ->
                 val minutes = hour * 60 + minute
@@ -211,6 +230,7 @@ fun SettingsScreen(
                     TimeField.CLOCK_IN_END -> onUpdateClockInEnd(minutes)
                     TimeField.CLOCK_OUT_START -> onUpdateClockOutStart(minutes)
                     TimeField.CLOCK_OUT_END -> onUpdateClockOutEnd(minutes)
+                    TimeField.LUNCH_BREAK_DURATION -> onUpdateLunchBreakMinutes(minutes)
                 }
                 editingField = null
             },
@@ -256,10 +276,60 @@ private fun TimeRuleSection(
 }
 
 @Composable
+private fun LunchBreakSection(
+    enabled: Boolean,
+    lunchBreakMinutes: Int,
+    onToggleEnabled: (Boolean) -> Unit,
+    onEditDuration: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "午休扣减",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = "从工作时段中间自动扣除午休",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = enabled,
+                    onCheckedChange = onToggleEnabled,
+                )
+            }
+            if (enabled) {
+                TimePickerRow(
+                    label = "午休时长",
+                    minutes = lunchBreakMinutes,
+                    displayText = PunchTimeConfig.formatLunchBreakMinutes(lunchBreakMinutes),
+                    onClick = onEditDuration,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun TimePickerRow(
     label: String,
     minutes: Int,
     onClick: () -> Unit,
+    displayText: String = PunchTimeConfig.formatMinutes(minutes),
 ) {
     Row(
         modifier = Modifier
@@ -274,7 +344,7 @@ private fun TimePickerRow(
             style = MaterialTheme.typography.bodyLarge,
         )
         Text(
-            text = PunchTimeConfig.formatMinutes(minutes),
+            text = displayText,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,

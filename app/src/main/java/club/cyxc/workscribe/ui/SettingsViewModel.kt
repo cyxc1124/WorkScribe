@@ -16,6 +16,8 @@ data class SettingsUiState(
     val clockInEndMinutes: Int = PunchTimeConfig.DEFAULT_CLOCK_IN_END_MINUTES,
     val clockOutStartMinutes: Int = PunchTimeConfig.DEFAULT_CLOCK_OUT_START_MINUTES,
     val clockOutEndMinutes: Int = PunchTimeConfig.DEFAULT_CLOCK_OUT_END_MINUTES,
+    val lunchBreakEnabled: Boolean = PunchTimeConfig.DEFAULT_LUNCH_BREAK_ENABLED,
+    val lunchBreakMinutes: Int = PunchTimeConfig.DEFAULT_LUNCH_BREAK_MINUTES,
     val validationError: String? = null,
     val saveMessage: String? = null,
     val isSaving: Boolean = false,
@@ -29,6 +31,8 @@ data class SettingsUiState(
         clockInEndMinutes = clockInEndMinutes,
         clockOutStartMinutes = clockOutStartMinutes,
         clockOutEndMinutes = clockOutEndMinutes,
+        lunchBreakEnabled = lunchBreakEnabled,
+        lunchBreakMinutes = lunchBreakMinutes,
     )
 }
 
@@ -49,6 +53,8 @@ class SettingsViewModel(
                         clockInEndMinutes = config.clockInEndMinutes,
                         clockOutStartMinutes = config.clockOutStartMinutes,
                         clockOutEndMinutes = config.clockOutEndMinutes,
+                        lunchBreakEnabled = config.lunchBreakEnabled,
+                        lunchBreakMinutes = config.lunchBreakMinutes,
                         validationError = null,
                     )
                 }
@@ -70,6 +76,14 @@ class SettingsViewModel(
 
     fun updateClockOutEnd(minutes: Int) {
         updateDraft { it.copy(clockOutEndMinutes = minutes, saveMessage = null) }
+    }
+
+    fun updateLunchBreakEnabled(enabled: Boolean) {
+        updateDraft { it.copy(lunchBreakEnabled = enabled, saveMessage = null) }
+    }
+
+    fun updateLunchBreakMinutes(minutes: Int) {
+        updateDraft { it.copy(lunchBreakMinutes = minutes, saveMessage = null) }
     }
 
     fun resetToDefaults() {
