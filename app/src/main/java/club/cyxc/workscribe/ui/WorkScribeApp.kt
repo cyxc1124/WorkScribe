@@ -1,0 +1,89 @@
+package club.cyxc.workscribe.ui
+
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+
+private enum class AppTab {
+    PUNCH,
+    CALENDAR,
+}
+
+@Composable
+fun WorkScribeApp(
+    punchViewModel: PunchViewModel,
+    calendarViewModel: CalendarViewModel,
+    modifier: Modifier = Modifier,
+) {
+    var selectedTab by rememberSaveable { mutableStateOf(AppTab.PUNCH) }
+
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        bottomBar = {
+            NavigationBar {
+                NavigationBarItem(
+                    selected = selectedTab == AppTab.PUNCH,
+                    onClick = { selectedTab = AppTab.PUNCH },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = null,
+                        )
+                    },
+                    label = { Text("打卡") },
+                )
+                NavigationBarItem(
+                    selected = selectedTab == AppTab.CALENDAR,
+                    onClick = { selectedTab = AppTab.CALENDAR },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = null,
+                        )
+                    },
+                    label = { Text("日历") },
+                )
+            }
+        },
+    ) { innerPadding ->
+        when (selectedTab) {
+            AppTab.PUNCH -> {
+                val punchUiState by punchViewModel.uiState.collectAsState()
+                PunchScreen(
+                    uiState = punchUiState,
+                    onPunch = punchViewModel::punch,
+                    onDeleteRecord = punchViewModel::deleteRecord,
+                    modifier = Modifier.padding(innerPadding),
+                )
+            }
+            AppTab.CALENDAR -> {
+                val calendarUiState by calendarViewModel.uiState.collectAsState()
+                CalendarScreen(
+                    uiState = calendarUiState,
+                    onSelectDate = calendarViewModel::selectDate,
+                    onSelectMonth = calendarViewModel::selectMonth,
+                    onPreviousMonth = calendarViewModel::previousMonth,
+                    onNextMonth = calendarViewModel::nextMonth,
+                    onGoToToday = calendarViewModel::goToToday,
+                    onSetDayStatus = calendarViewModel::setDayStatus,
+                    onClearDayStatus = calendarViewModel::clearDayStatus,
+                    modifier = Modifier.padding(innerPadding),
+                )
+            }
+        }
+    }
+}

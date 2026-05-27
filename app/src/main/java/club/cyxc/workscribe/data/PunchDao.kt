@@ -13,6 +13,9 @@ interface PunchDao {
     @Query("SELECT * FROM punch_records WHERE timestamp >= :dayStart AND timestamp < :dayEnd ORDER BY timestamp DESC")
     fun observeRecordsForDay(dayStart: Long, dayEnd: Long): Flow<List<PunchRecord>>
 
+    @Query("SELECT * FROM punch_records WHERE timestamp >= :rangeStart AND timestamp < :rangeEnd ORDER BY timestamp ASC")
+    fun observeRecordsInRange(rangeStart: Long, rangeEnd: Long): Flow<List<PunchRecord>>
+
     @Query("SELECT * FROM punch_records ORDER BY timestamp DESC LIMIT 1")
     fun observeLatestRecord(): Flow<PunchRecord?>
 

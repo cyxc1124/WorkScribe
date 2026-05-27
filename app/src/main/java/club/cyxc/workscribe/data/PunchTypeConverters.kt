@@ -8,4 +8,10 @@ class PunchTypeConverters {
 
     @TypeConverter
     fun toPunchType(value: String): PunchType = PunchType.valueOf(value)
+
+    @TypeConverter
+    fun fromDayStatusType(type: DayStatusType): String = type.name
+
+    @TypeConverter
+    fun toDayStatusType(value: String): DayStatusType = DayStatusType.valueOf(value)
 }

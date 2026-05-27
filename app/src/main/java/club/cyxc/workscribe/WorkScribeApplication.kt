@@ -6,6 +6,7 @@ import club.cyxc.workscribe.data.PunchRepository
 
 class WorkScribeApplication : Application() {
     val repository: PunchRepository by lazy {
-        PunchRepository(AppDatabase.getInstance(this).punchDao())
+        val database = AppDatabase.getInstance(this)
+        PunchRepository(database.punchDao(), database.dayStatusDao())
     }
 }

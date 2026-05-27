@@ -11,6 +11,12 @@ enum class PunchWindow {
     OFF_HOURS,
 }
 
+/**
+ * 打卡时段：仅由当前时钟决定类型，不按「上一条记录」交替或拦截重复打卡。
+ * - 00:00–12:00（不含 12:00）：上班
+ * - 12:00–17:30（不含 17:30）：非打卡
+ * - 17:30–24:00（不含次日 0:00）：下班
+ */
 object PunchTimeRules {
     private val CLOCK_IN_END = LocalTime.NOON
     private val CLOCK_OUT_START = LocalTime.of(17, 30)
