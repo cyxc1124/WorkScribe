@@ -47,6 +47,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import club.cyxc.workscribe.data.PunchRecord
 import club.cyxc.workscribe.data.PunchType
+import club.cyxc.workscribe.util.PunchTimeRules
+import club.cyxc.workscribe.util.PunchWindow
 import club.cyxc.workscribe.util.TimeFormatter
 import club.cyxc.workscribe.util.WorkDurationCalculator
 import kotlinx.coroutines.delay
@@ -102,7 +104,7 @@ fun PunchScreen(
             }
             item {
                 PunchButton(
-                    nextPunchType = uiState.nextPunchType,
+                    nowMillis = nowMillis,
                     onPunch = onPunch,
                 )
             }
@@ -200,23 +202,38 @@ private fun StatusCard(isWorking: Boolean, workDurationMillis: Long) {
 }
 
 @Composable
-private fun PunchButton(nextPunchType: PunchType, onPunch: () -> Unit) {
-    val isClockIn = nextPunchType == PunchType.IN
-    val label = if (isClockIn) "上班打卡" else "下班打卡"
-    val icon: ImageVector = if (isClockIn) Icons.Default.Login else Icons.Default.Logout
-    val buttonColor = if (isClockIn) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.tertiary
+private fun PunchButton(nowMillis: Long, onPunch: () -> Unit) {
+    when (PunchTimeRules.windowAt(nowMillis)) {
+        PunchWindow.CLOCK_IN -> ActivePunchButton(
+            label = "上班打卡",
+            icon = Icons.Default.Login,
+            containerColor = MaterialTheme.colorScheme.primary,
+            onPunch = onPunch,
+        )
+        PunchWindow.CLOCK_OUT -> ActivePunchButton(
+            label = "下班打卡",
+            icon = Icons.Default.Logout,
+            containerColor = MaterialTheme.colorScheme.tertiary,
+            onPunch = onPunch,
+        )
+        PunchWindow.OFF_HOURS -> OffHoursPunchButton()
     }
+}
 
+@Composable
+private fun ActivePunchButton(
+    label: String,
+    icon: ImageVector,
+    containerColor: androidx.compose.ui.graphics.Color,
+    onPunch: () -> Unit,
+) {
     Button(
         onClick = onPunch,
         modifier = Modifier
             .fillMaxWidth()
             .height(72.dp),
         shape = RoundedCornerShape(20.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = buttonColor),
+        colors = ButtonDefaults.buttonColors(containerColor = containerColor),
     ) {
         Icon(
             imageVector = icon,
@@ -228,6 +245,41 @@ private fun PunchButton(nextPunchType: PunchType, onPunch: () -> Unit) {
             text = label,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
+        )
+    }
+}
+
+@Composable
+private fun OffHoursPunchButton() {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Button(
+            onClick = {},
+            enabled = false,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(72.dp),
+            shape = RoundedCornerShape(20.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.AccessTime,
+                contentDescription = null,
+                modifier = Modifier.size(28.dp),
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = "非打卡时段",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+        Text(
+            text = PunchTimeRules.OFF_HOURS_HINT,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

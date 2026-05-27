@@ -5,7 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import club.cyxc.workscribe.data.PunchRecord
 import club.cyxc.workscribe.data.PunchRepository
-import club.cyxc.workscribe.data.PunchType
+import club.cyxc.workscribe.util.PunchTimeRules
 import club.cyxc.workscribe.util.WorkDurationCalculator
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -17,7 +17,6 @@ import java.time.LocalDate
 data class PunchUiState(
     val todayRecords: List<PunchRecord> = emptyList(),
     val isWorking: Boolean = false,
-    val nextPunchType: PunchType = PunchType.IN,
     val workDurationMillis: Long = 0L,
     val today: LocalDate = LocalDate.now(),
 )
@@ -35,7 +34,6 @@ class PunchViewModel(
         PunchUiState(
             todayRecords = todayRecords.sortedByDescending { it.timestamp },
             isWorking = isWorking,
-            nextPunchType = WorkDurationCalculator.nextPunchType(todayRecords),
             workDurationMillis = WorkDurationCalculator.calculate(todayRecords),
             today = LocalDate.now(),
         )
@@ -47,7 +45,7 @@ class PunchViewModel(
 
     fun punch() {
         viewModelScope.launch {
-            val type = uiState.value.nextPunchType
+            val type = PunchTimeRules.punchTypeFor(System.currentTimeMillis()) ?: return@launch
             repository.punch(type)
         }
     }

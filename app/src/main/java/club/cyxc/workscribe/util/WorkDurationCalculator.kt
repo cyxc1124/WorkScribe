@@ -32,8 +32,4 @@ object WorkDurationCalculator {
         val latest = records.maxByOrNull { it.timestamp } ?: return false
         return latest.type == PunchType.IN
     }
-
-    fun nextPunchType(records: List<PunchRecord>): PunchType {
-        return if (isWorking(records)) PunchType.OUT else PunchType.IN
-    }
 }

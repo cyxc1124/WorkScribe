@@ -8,4 +8,6 @@
     <string name="today_records">今日记录</string>
     <string name="empty_records">今天还没有打卡记录</string>
     <string name="delete_record">删除记录</string>
+    <string name="off_hours_hint">12:00–17:30 为非打卡时段，请稍后再试</string>
+    <string name="off_hours_button">非打卡时段</string>
 </resources>
