@@ -56,6 +56,26 @@ class PunchTimeRulesTest {
         assertEquals(PunchType.OUT, punchTypeAt(LocalTime.of(18, 0), todayRecords = emptyList()))
     }
 
+    @Test
+    fun punchWindows_applyOnWeekendsAndRestDays() {
+        val saturday = java.time.LocalDate.of(2026, 5, 23)
+        assertEquals(PunchType.IN, punchTypeOn(saturday, LocalTime.of(9, 0)))
+        assertEquals(
+            PunchType.IN,
+            punchTypeOn(saturday, LocalTime.of(14, 0), todayRecords = emptyList()),
+        )
+        assertEquals(PunchType.OUT, punchTypeOn(saturday, LocalTime.of(20, 0)))
+    }
+
+    private fun punchTypeOn(
+        date: java.time.LocalDate,
+        time: LocalTime,
+        todayRecords: List<PunchRecord> = emptyList(),
+    ): PunchType? {
+        val millis = time.atDate(date).atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        return PunchTimeRules.punchTypeFor(millis, todayRecords)
+    }
+
     private fun punchTypeAt(
         time: LocalTime,
         todayRecords: List<PunchRecord> = emptyList(),

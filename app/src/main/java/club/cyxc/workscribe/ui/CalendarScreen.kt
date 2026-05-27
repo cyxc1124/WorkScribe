@@ -487,7 +487,7 @@ private fun DayStatusSelector(
                 )
             }
             Text(
-                text = "自动：有打卡记录为上班/加班，周末无记录为休息",
+                text = "自动：有打卡记录为上班/加班，周末无记录为休息（不影响打卡）",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

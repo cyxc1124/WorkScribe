@@ -12,6 +12,7 @@ enum class ResolvedDayStatus {
     REST,
 }
 
+/** 日历展示用日期状态推断；不影响主屏打卡，打卡时段仅由 [PunchTimeRules] 决定。 */
 object DayStatusResolver {
     private const val STANDARD_WORK_MILLIS = 8L * 60 * 60 * 1000
 
