@@ -20,8 +20,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Login
-import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
@@ -242,13 +242,13 @@ private fun PunchButton(
     when (punchTimeRules.windowAt(nowMillis)) {
         PunchWindow.CLOCK_IN -> ActivePunchButton(
             label = "上班打卡",
-            icon = Icons.Default.Login,
+            icon = Icons.AutoMirrored.Filled.Login,
             containerColor = MaterialTheme.colorScheme.primary,
             onPunch = onPunch,
         )
         PunchWindow.CLOCK_OUT -> ActivePunchButton(
             label = "下班打卡",
-            icon = Icons.Default.Logout,
+            icon = Icons.AutoMirrored.Filled.Logout,
             containerColor = MaterialTheme.colorScheme.tertiary,
             onPunch = onPunch,
         )
@@ -298,7 +298,7 @@ private fun OffHoursPunchButton(
     when (punchTimeRules.offHoursPunchState(todayRecords)) {
         OffHoursPunchState.MAKEUP_IN -> ActivePunchButton(
             label = punchTimeRules.makeupInLabel,
-            icon = Icons.Default.Login,
+            icon = Icons.AutoMirrored.Filled.Login,
             containerColor = MaterialTheme.colorScheme.primary,
             onPunch = onPunch,
         )
@@ -374,7 +374,7 @@ private fun EmptyRecordsHint() {
 private fun RecordItem(record: PunchRecord, onDelete: () -> Unit) {
     val isClockIn = record.type == PunchType.IN
     val typeLabel = if (isClockIn) "上班" else "下班"
-    val icon = if (isClockIn) Icons.Default.Login else Icons.Default.Logout
+    val icon = if (isClockIn) Icons.AutoMirrored.Filled.Login else Icons.AutoMirrored.Filled.Logout
     val accentColor = if (isClockIn) {
         MaterialTheme.colorScheme.primary
     } else {
