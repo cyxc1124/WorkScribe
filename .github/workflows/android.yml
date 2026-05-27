@@ -2,14 +2,10 @@ name: Android
 
 # 触发：
 # - main / master 分支 push、PR：跑 debug 构建 + Android lint，上传 APK 供下载
-# - 推 tag `v*`：在 build job 通过后跑 release job，产出 release APK 并附到 GitHub Release
-#   （当前 WorkScribe 尚未配置正式签名；release 使用 AGP 默认 debug 签名，仅供内部分发/归档）
-#
-# 后续若需正式签名发版，可参考 miho-live-app-android：
-#   - 在 app/build.gradle.kts 接入 keystore.properties
-#   - 添加 version.properties + 发版校验
-#   - 在 repo Settings → Secrets 配置：
-#     RELEASE_KEYSTORE_BASE64 / RELEASE_STORE_PASSWORD / RELEASE_KEY_ALIAS / RELEASE_KEY_PASSWORD
+# - 推 tag `v*`：在 build job 通过后跑 release job，用 keystore secrets 签名并
+#   附到 GitHub Release（需要在 repo Settings → Secrets 配置以下四个：
+#   - RELEASE_KEYSTORE_BASE64：keystore 文件的 base64（`base64 -w0 release.jks`）
+#   - RELEASE_STORE_PASSWORD / RELEASE_KEY_ALIAS / RELEASE_KEY_PASSWORD
 
 on:
   push:
@@ -66,7 +62,7 @@ jobs:
           retention-days: 7
 
   release:
-    name: Release APK
+    name: Signed Release
     if: startsWith(github.ref, 'refs/tags/v')
     needs: build
     runs-on: ubuntu-latest
@@ -82,6 +78,53 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+
+      - name: Decode release keystore
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          for name in RELEASE_KEYSTORE_BASE64 RELEASE_STORE_PASSWORD RELEASE_KEY_ALIAS RELEASE_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::缺少 GitHub Secret: ${name}"
+              exit 1
+            fi
+          done
+          mkdir -p "$HOME/.keystore"
+          # macOS 生成的 Base64 常带换行，解码前去掉空白，避免 GNU base64: invalid input
+          printf '%s' "${RELEASE_KEYSTORE_BASE64}" | tr -d ' \n\r\t' | base64 --decode > "$HOME/.keystore/workscribe-release.jks"
+          if [ ! -s "$HOME/.keystore/workscribe-release.jks" ]; then
+            echo "::error::keystore 解码失败，请用单行 Base64 重新设置 RELEASE_KEYSTORE_BASE64"
+            echo "macOS: openssl base64 -in release.jks -A | pbcopy"
+            echo "Linux: base64 -w0 release.jks"
+            exit 1
+          fi
+          {
+            echo "storeFile=$HOME/.keystore/workscribe-release.jks"
+            echo "storePassword=${RELEASE_STORE_PASSWORD}"
+            echo "keyAlias=${RELEASE_KEY_ALIAS}"
+            echo "keyPassword=${RELEASE_KEY_PASSWORD}"
+          } > keystore.properties
+
+      # 发版前须先 bump 并提交 version.properties，再打同名 tag（避免 CI 与本地版本不一致）
+      - name: Verify version.properties matches tag
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          if [ -z "$TAG" ]; then
+            echo "::error::需要 refs/tags/v* 形式的 tag"
+            exit 1
+          fi
+          NAME=$(grep '^VERSION_NAME=' version.properties | cut -d= -f2- | tr -d '\r')
+          CODE=$(grep '^VERSION_CODE=' version.properties | cut -d= -f2- | tr -d '\r')
+          if [ "$TAG" != "$NAME" ]; then
+            echo "::error::Git tag v${TAG} 与 version.properties 的 VERSION_NAME=${NAME} 不一致"
+            echo "请先执行: ./scripts/bump-version.sh ${TAG}"
+            echo "然后: git add version.properties && git commit && git tag v${TAG}"
+            exit 1
+          fi
+          echo "版本校验通过: VERSION_NAME=${NAME}, VERSION_CODE=${CODE}"
 
       - name: Grant execute on gradlew
         run: chmod +x ./gradlew
@@ -103,3 +146,9 @@ jobs:
           files: app/build/outputs/apk/release/*.apk
           fail_on_unmatched_files: true
           generate_release_notes: true
+
+      - name: Clean up keystore
+        if: always()
+        run: |
+          rm -f keystore.properties
+          rm -rf "$HOME/.keystore"
