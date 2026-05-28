@@ -10,6 +10,8 @@ import java.util.Locale
 object TimeFormatter {
     private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss", Locale.CHINA)
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy年M月d日 EEEE", Locale.CHINA)
+    private val calendarDayHeaderFormatter = DateTimeFormatter.ofPattern("M月d日", Locale.CHINA)
+    private val calendarWeekdayFormatter = DateTimeFormatter.ofPattern("EEE", Locale.CHINA)
     private val recordTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.CHINA)
     private val yearMonthFormatter = DateTimeFormatter.ofPattern("yyyy年M月", Locale.CHINA)
 
@@ -19,6 +21,20 @@ object TimeFormatter {
 
     fun formatDate(date: LocalDate, zoneId: ZoneId = ZoneId.systemDefault()): String {
         return date.atStartOfDay(zoneId).format(dateFormatter)
+    }
+
+    /** 日历选中日标题，如「5月25日 周一」。 */
+    fun formatCalendarDayHeader(date: LocalDate, zoneId: ZoneId = ZoneId.systemDefault()): String {
+        val zoned = date.atStartOfDay(zoneId)
+        return "${zoned.format(calendarDayHeaderFormatter)} ${zoned.format(calendarWeekdayFormatter)}"
+    }
+
+    fun formatCalendarDayYear(date: LocalDate): String {
+        return String.format(Locale.CHINA, "%d年", date.year)
+    }
+
+    fun isCalendarDayYearVisible(date: LocalDate): Boolean {
+        return date.year != LocalDate.now().year
     }
 
     fun formatYearMonth(yearMonth: YearMonth): String {

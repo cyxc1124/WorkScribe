@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -34,6 +33,7 @@ import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -173,8 +173,8 @@ fun CalendarScreen(
                 item {
                     DayDurationCard(workDurationMillis = uiState.workDurationMillis)
                 }
-                items(uiState.selectedDayRecords, key = { it.id }) { record ->
-                    CalendarRecordItem(record = record)
+                item {
+                    DayRecordsCard(records = uiState.selectedDayRecords)
                 }
             }
         }
@@ -232,27 +232,40 @@ private fun MonthStrip(
         ) {
             monthStrip.forEach { month ->
                 val isCurrent = month == currentMonth
+                val label = if (isCurrent) {
+                    TimeFormatter.formatMonthStripLabelFull(month)
+                } else {
+                    TimeFormatter.formatMonthStripLabel(month)
+                }
+                val textStyle = if (isCurrent) {
+                    MaterialTheme.typography.titleSmall
+                } else {
+                    MaterialTheme.typography.bodyMedium
+                }
+                val textColor = if (isCurrent) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                }
+                val chipModifier = Modifier
+                    .padding(horizontal = 2.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .then(
+                        if (isCurrent) {
+                            Modifier.background(MaterialTheme.colorScheme.primaryContainer)
+                        } else {
+                            Modifier
+                        },
+                    )
+                    .clickable { onSelectMonth(month) }
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
                 Text(
-                    text = if (isCurrent) {
-                        TimeFormatter.formatMonthStripLabelFull(month)
-                    } else {
-                        TimeFormatter.formatMonthStripLabel(month)
-                    },
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { onSelectMonth(month) }
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                    style = if (isCurrent) {
-                        MaterialTheme.typography.titleMedium
-                    } else {
-                        MaterialTheme.typography.bodyMedium
-                    },
-                    fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isCurrent) {
-                        MaterialTheme.colorScheme.onSurface
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    },
+                    text = label,
+                    modifier = chipModifier,
+                    style = textStyle,
+                    fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal,
+                    color = textColor,
+                    maxLines = 1,
                 )
             }
         }
@@ -501,17 +514,18 @@ private fun DayStatusSelector(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
                 text = "日期类型",
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 DayStatusType.entries.forEach { type ->
                     val resolved = type.toResolved()
@@ -547,22 +561,52 @@ private fun DayStatusSelector(
 
 @Composable
 private fun SelectedDayHeader(selectedDate: LocalDate?) {
-    Text(
-        text = if (selectedDate != null) {
-            TimeFormatter.formatDate(selectedDate)
-        } else {
-            "选择日期"
-        },
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.SemiBold,
-    )
+    if (selectedDate == null) {
+        Text(
+            text = "选择日期",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        return
+    }
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            Text(
+                text = TimeFormatter.formatCalendarDayHeader(selectedDate),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            if (TimeFormatter.isCalendarDayYearVisible(selectedDate)) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = TimeFormatter.formatCalendarDayYear(selectedDate),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 2.dp),
+                )
+            }
+        }
+        Text(
+            text = "打卡详情",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }
 
 @Composable
 private fun DayDurationCard(workDurationMillis: Long) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer,
         ),
@@ -570,27 +614,35 @@ private fun DayDurationCard(workDurationMillis: Long) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Icon(
-                imageVector = Icons.Default.AccessTime,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f, fill = false),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AccessTime,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = "当日工时",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
-                Text(
-                    text = TimeFormatter.formatDuration(workDurationMillis),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                )
             }
+            Text(
+                text = TimeFormatter.formatDuration(workDurationMillis),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                textAlign = TextAlign.End,
+            )
         }
     }
 }
@@ -618,7 +670,39 @@ private fun EmptyDayHint(message: String) {
 }
 
 @Composable
-private fun CalendarRecordItem(record: PunchRecord) {
+private fun DayRecordsCard(records: List<PunchRecord>) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "打卡记录",
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            records.forEachIndexed { index, record ->
+                CalendarRecordRow(record = record)
+                if (index < records.lastIndex) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+        }
+    }
+}
+
+@Composable
+private fun CalendarRecordRow(record: PunchRecord) {
     val isClockIn = record.type == PunchType.IN
     val typeLabel = if (isClockIn) "上班" else "下班"
     val icon = if (isClockIn) Icons.AutoMirrored.Filled.Login else Icons.AutoMirrored.Filled.Logout
@@ -628,47 +712,42 @@ private fun CalendarRecordItem(record: PunchRecord) {
         MaterialTheme.colorScheme.tertiary
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        Surface(
+            modifier = Modifier.size(36.dp),
+            shape = RoundedCornerShape(50),
+            color = accentColor.copy(alpha = 0.12f),
         ) {
-            Surface(
-                modifier = Modifier.size(44.dp),
-                shape = RoundedCornerShape(50),
-                color = accentColor.copy(alpha = 0.15f),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = accentColor,
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column {
-                Text(
-                    text = typeLabel,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium,
-                )
-                Text(
-                    text = TimeFormatter.formatRecordTime(record.timestamp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = accentColor,
                 )
             }
         }
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = typeLabel,
+            modifier = Modifier.width(40.dp),
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = TimeFormatter.formatRecordTime(record.timestamp),
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.End,
+        )
     }
 }
 
