@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.sp
 import club.cyxc.workscribe.data.DayStatusType
 import club.cyxc.workscribe.data.PunchRecord
 import club.cyxc.workscribe.data.PunchType
+import club.cyxc.workscribe.util.MonthStatusStats
 import club.cyxc.workscribe.util.ResolvedDayStatus
 import club.cyxc.workscribe.util.TimeFormatter
 import java.time.LocalDate
@@ -118,6 +119,9 @@ fun CalendarScreen(
                 )
             }
             item {
+                MonthStatsCard(stats = uiState.monthStats)
+            }
+            item {
                 CalendarGrid(
                     gridDays = uiState.gridDays,
                     onSelectDate = onSelectDate,
@@ -174,6 +178,31 @@ fun CalendarScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun MonthStatsCard(stats: MonthStatusStats) {
+    val parts = buildList {
+        add("上班 ${stats.workDays} 天")
+        add("休息 ${stats.restDays} 天")
+        if (stats.sickDays > 0) add("病假 ${stats.sickDays} 天")
+        if (stats.overtimeDays > 0) add("加班 ${stats.overtimeDays} 天")
+    }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f),
+        ),
+    ) {
+        Text(
+            text = "本月：${parts.joinToString(separator = " · ")}",
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+        )
     }
 }
 

@@ -9,6 +9,8 @@ import club.cyxc.workscribe.data.PunchRepository
 import club.cyxc.workscribe.data.PunchSettingsRepository
 import club.cyxc.workscribe.data.PunchTimeConfig
 import club.cyxc.workscribe.util.DayStatusResolver
+import club.cyxc.workscribe.util.MonthStatusCounter
+import club.cyxc.workscribe.util.MonthStatusStats
 import club.cyxc.workscribe.util.ResolvedDayStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -39,6 +41,7 @@ data class CalendarUiState(
     val currentMonth: YearMonth = YearMonth.now(),
     val selectedDate: LocalDate? = LocalDate.now(),
     val monthStrip: List<YearMonth> = emptyList(),
+    val monthStats: MonthStatusStats = MonthStatusStats.Empty,
     val gridDays: List<CalendarDayCell> = emptyList(),
     val selectedDayRecords: List<PunchRecord> = emptyList(),
     val selectedDayStatus: ResolvedDayStatus? = null,
@@ -125,19 +128,23 @@ class CalendarViewModel(
                 lunchBreakMinutes = config.lunchBreakMinutes,
             )
         }
+        val gridDays = buildGridDays(
+            month = month,
+            selected = selected,
+            today = today,
+            recordsByDate = recordsByDate,
+            manualStatuses = gridStatuses,
+            lunchBreakEnabled = config.lunchBreakEnabled,
+            lunchBreakMinutes = config.lunchBreakMinutes,
+        )
         CalendarUiState(
             currentMonth = month,
             selectedDate = selected,
             monthStrip = buildMonthStrip(month),
-            gridDays = buildGridDays(
-                month = month,
-                selected = selected,
-                today = today,
-                recordsByDate = recordsByDate,
-                manualStatuses = gridStatuses,
-                lunchBreakEnabled = config.lunchBreakEnabled,
-                lunchBreakMinutes = config.lunchBreakMinutes,
+            monthStats = MonthStatusCounter.count(
+                gridDays.filter { it.isCurrentMonth }.map { it.status },
             ),
+            gridDays = gridDays,
             selectedDayRecords = sortedDayRecs,
             selectedDayStatus = selectedStatus,
             selectedDayManualStatus = selectedManual,
