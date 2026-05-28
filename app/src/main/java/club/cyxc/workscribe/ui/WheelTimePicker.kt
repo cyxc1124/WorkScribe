@@ -86,6 +86,26 @@ fun WheelTimePicker(
 }
 
 @Composable
+fun WheelMonthPicker(
+    selectedMonth: Int,
+    onMonthChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val months = remember { (1..12).toList() }
+    val items = remember { months.map { it.toString() } }
+    val selectedIndex = (selectedMonth - 1).coerceIn(0, items.lastIndex)
+    WheelPickerColumn(
+        items = items,
+        selectedIndex = selectedIndex,
+        onSelectedIndexChange = { index -> onMonthChange(months[index]) },
+        suffix = "月",
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 48.dp),
+    )
+}
+
+@Composable
 fun WheelYearPicker(
     years: List<Int>,
     selectedYear: Int,
@@ -103,6 +123,68 @@ fun WheelYearPicker(
             .fillMaxWidth()
             .padding(horizontal = 48.dp),
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WheelMonthPickerBottomSheet(
+    initialMonth: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    title: String = "选择月份",
+    subtitle: String = "滑动选择月份",
+) {
+    var pickerMonth by remember { mutableIntStateOf(initialMonth) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        modifier = modifier,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+            WheelMonthPicker(
+                selectedMonth = pickerMonth,
+                onMonthChange = { pickerMonth = it },
+            )
+            HorizontalDivider(modifier = Modifier.padding(top = 16.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = onDismiss) {
+                    Text("取消")
+                }
+                Button(
+                    onClick = { onConfirm(pickerMonth) },
+                    modifier = Modifier.padding(start = 8.dp),
+                ) {
+                    Text("确定")
+                }
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

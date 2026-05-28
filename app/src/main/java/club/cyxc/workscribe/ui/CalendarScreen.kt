@@ -26,6 +26,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.BeachAccess
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.MoreTime
@@ -96,6 +97,7 @@ fun CalendarScreen(
     modifier: Modifier = Modifier,
 ) {
     var showYearPicker by remember { mutableStateOf(false) }
+    var showMonthPicker by remember { mutableStateOf(false) }
 
     if (showYearPicker) {
         WheelYearPickerBottomSheet(
@@ -105,6 +107,17 @@ fun CalendarScreen(
             onConfirm = { year ->
                 onSelectYear(year)
                 showYearPicker = false
+            },
+        )
+    }
+
+    if (showMonthPicker) {
+        WheelMonthPickerBottomSheet(
+            initialMonth = uiState.currentMonth.monthValue,
+            onDismiss = { showMonthPicker = false },
+            onConfirm = { month ->
+                onSelectMonth(YearMonth.of(uiState.currentMonth.year, month))
+                showMonthPicker = false
             },
         )
     }
@@ -130,9 +143,8 @@ fun CalendarScreen(
             item {
                 CalendarMonthNavigator(
                     currentMonth = uiState.currentMonth,
-                    monthStrip = uiState.monthStrip,
                     onYearClick = { showYearPicker = true },
-                    onSelectMonth = onSelectMonth,
+                    onMonthClick = { showMonthPicker = true },
                     onPreviousMonth = onPreviousMonth,
                     onNextMonth = onNextMonth,
                     onGoToToday = onGoToToday,
@@ -229,44 +241,8 @@ private fun MonthStatsCard(stats: MonthStatusStats) {
 @Composable
 private fun CalendarMonthNavigator(
     currentMonth: YearMonth,
-    monthStrip: List<YearMonth>,
     onYearClick: () -> Unit,
-    onSelectMonth: (YearMonth) -> Unit,
-    onPreviousMonth: () -> Unit,
-    onNextMonth: () -> Unit,
-    onGoToToday: () -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Text(
-            text = TimeFormatter.formatYear(currentMonth.year),
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .clickable(onClick = onYearClick)
-                .padding(horizontal = 12.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        MonthStrip(
-            currentMonth = currentMonth,
-            monthStrip = monthStrip,
-            onSelectMonth = onSelectMonth,
-            onPreviousMonth = onPreviousMonth,
-            onNextMonth = onNextMonth,
-            onGoToToday = onGoToToday,
-        )
-    }
-}
-
-@Composable
-private fun MonthStrip(
-    currentMonth: YearMonth,
-    monthStrip: List<YearMonth>,
-    onSelectMonth: (YearMonth) -> Unit,
+    onMonthClick: () -> Unit,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onGoToToday: () -> Unit,
@@ -281,55 +257,52 @@ private fun MonthStrip(
                 contentDescription = "上一个月",
             )
         }
-        Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            monthStrip.forEach { month ->
-                val isCurrent = month == currentMonth
-                val label = TimeFormatter.formatMonthStripLabel(month)
-                val textStyle = if (isCurrent) {
-                    MaterialTheme.typography.titleSmall
-                } else {
-                    MaterialTheme.typography.bodyMedium
-                }
-                val textColor = if (isCurrent) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
-                }
-                val chipModifier = Modifier
-                    .padding(horizontal = 2.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .then(
-                        if (isCurrent) {
-                            Modifier.background(MaterialTheme.colorScheme.primaryContainer)
-                        } else {
-                            Modifier
-                        },
-                    )
-                    .clickable { onSelectMonth(month) }
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
-                Text(
-                    text = label,
-                    modifier = chipModifier,
-                    style = textStyle,
-                    fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal,
-                    color = textColor,
-                    maxLines = 1,
-                )
-            }
-        }
+        DatePickerDropdownChip(
+            label = TimeFormatter.formatYear(currentMonth.year),
+            onClick = onYearClick,
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        DatePickerDropdownChip(
+            label = TimeFormatter.formatMonth(currentMonth.monthValue),
+            onClick = onMonthClick,
+        )
         IconButton(onClick = onNextMonth) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = "下一个月",
             )
         }
+        Spacer(modifier = Modifier.weight(1f))
         OutlinedButton(onClick = onGoToToday) {
             Text("今天")
         }
+    }
+}
+
+@Composable
+private fun DatePickerDropdownChip(
+    label: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Icon(
+            imageVector = Icons.Default.ArrowDropDown,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp),
+        )
     }
 }
 

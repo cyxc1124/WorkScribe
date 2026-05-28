@@ -40,7 +40,6 @@ data class CalendarDayCell(
 data class CalendarUiState(
     val currentMonth: YearMonth = YearMonth.now(),
     val selectedDate: LocalDate? = LocalDate.now(),
-    val monthStrip: List<YearMonth> = emptyList(),
     val monthStats: MonthStatusStats = MonthStatusStats.Empty,
     val gridDays: List<CalendarDayCell> = emptyList(),
     val selectedDayRecords: List<PunchRecord> = emptyList(),
@@ -140,7 +139,6 @@ class CalendarViewModel(
         CalendarUiState(
             currentMonth = month,
             selectedDate = selected,
-            monthStrip = buildMonthStrip(month),
             monthStats = MonthStatusCounter.count(
                 gridDays.filter { it.isCurrentMonth }.map { it.status },
             ),
@@ -262,10 +260,6 @@ class CalendarViewModel(
                 manualStatus = manual,
             )
         }
-    }
-
-    private fun buildMonthStrip(center: YearMonth): List<YearMonth> {
-        return (-2..2).map { offset -> center.plusMonths(offset.toLong()) }
     }
 
     private fun reconcileStaleManualOvertime(

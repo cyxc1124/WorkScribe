@@ -37,6 +37,10 @@ object TimeFormatter {
         return String.format(Locale.CHINA, "%d年", year)
     }
 
+    fun formatMonth(month: Int): String {
+        return String.format(Locale.CHINA, "%d月", month)
+    }
+
     fun isCalendarDayYearVisible(date: LocalDate): Boolean {
         return date.year != LocalDate.now().year
     }
