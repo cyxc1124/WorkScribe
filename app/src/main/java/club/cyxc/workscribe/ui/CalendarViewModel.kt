@@ -174,6 +174,20 @@ class CalendarViewModel(
         _currentMonth.value = month
     }
 
+    fun selectYear(year: Int) {
+        val previous = _currentMonth.value
+        val newMonth = YearMonth.of(year, previous.monthValue)
+        _currentMonth.value = newMonth
+        _selectedDate.value = _selectedDate.value?.let { date ->
+            if (YearMonth.from(date) == previous) {
+                val maxDay = newMonth.lengthOfMonth()
+                date.withYear(year).withDayOfMonth(date.dayOfMonth.coerceAtMost(maxDay))
+            } else {
+                date
+            }
+        }
+    }
+
     fun previousMonth() {
         _currentMonth.value = _currentMonth.value.minusMonths(1)
     }
@@ -295,6 +309,14 @@ class CalendarViewModel(
     }
 
     companion object {
+        val selectableYears: List<Int>
+            get() {
+                val nowYear = LocalDate.now().year
+                val minYear = maxOf(2020, nowYear - 5)
+                val maxYear = nowYear + 1
+                return (minYear..maxYear).toList()
+            }
+
         fun monthGridBounds(month: YearMonth): Pair<LocalDate, LocalDate> {
             val firstDay = month.atDay(1)
             val leadingEmpty = firstDay.dayOfWeek.value - 1

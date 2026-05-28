@@ -85,6 +85,90 @@ fun WheelTimePicker(
     }
 }
 
+@Composable
+fun WheelYearPicker(
+    years: List<Int>,
+    selectedYear: Int,
+    onYearChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val items = remember(years) { years.map { it.toString() } }
+    val selectedIndex = years.indexOf(selectedYear).let { if (it < 0) 0 else it }
+    WheelPickerColumn(
+        items = items,
+        selectedIndex = selectedIndex,
+        onSelectedIndexChange = { index -> onYearChange(years[index]) },
+        suffix = "年",
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 48.dp),
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WheelYearPickerBottomSheet(
+    years: List<Int>,
+    initialYear: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    title: String = "选择年份",
+    subtitle: String = "滑动选择年份",
+) {
+    var pickerYear by remember { mutableIntStateOf(initialYear) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        modifier = modifier,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+            WheelYearPicker(
+                years = years,
+                selectedYear = pickerYear,
+                onYearChange = { pickerYear = it },
+            )
+            HorizontalDivider(modifier = Modifier.padding(top = 16.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = onDismiss) {
+                    Text("取消")
+                }
+                Button(
+                    onClick = { onConfirm(pickerYear) },
+                    modifier = Modifier.padding(start = 8.dp),
+                ) {
+                    Text("确定")
+                }
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WheelTimePickerBottomSheet(

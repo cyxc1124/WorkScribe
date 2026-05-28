@@ -46,6 +46,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -82,6 +86,7 @@ fun CalendarScreen(
     uiState: CalendarUiState,
     onSelectDate: (LocalDate) -> Unit,
     onSelectMonth: (YearMonth) -> Unit,
+    onSelectYear: (Int) -> Unit,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onGoToToday: () -> Unit,
@@ -90,6 +95,20 @@ fun CalendarScreen(
     onOpenMakeupPunch: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var showYearPicker by remember { mutableStateOf(false) }
+
+    if (showYearPicker) {
+        WheelYearPickerBottomSheet(
+            years = CalendarViewModel.selectableYears,
+            initialYear = uiState.currentMonth.year,
+            onDismiss = { showYearPicker = false },
+            onConfirm = { year ->
+                onSelectYear(year)
+                showYearPicker = false
+            },
+        )
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
@@ -109,9 +128,10 @@ fun CalendarScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                MonthStrip(
+                CalendarMonthNavigator(
                     currentMonth = uiState.currentMonth,
                     monthStrip = uiState.monthStrip,
+                    onYearClick = { showYearPicker = true },
                     onSelectMonth = onSelectMonth,
                     onPreviousMonth = onPreviousMonth,
                     onNextMonth = onNextMonth,
@@ -207,6 +227,42 @@ private fun MonthStatsCard(stats: MonthStatusStats) {
 }
 
 @Composable
+private fun CalendarMonthNavigator(
+    currentMonth: YearMonth,
+    monthStrip: List<YearMonth>,
+    onYearClick: () -> Unit,
+    onSelectMonth: (YearMonth) -> Unit,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit,
+    onGoToToday: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            text = TimeFormatter.formatYear(currentMonth.year),
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(onClick = onYearClick)
+                .padding(horizontal = 12.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        MonthStrip(
+            currentMonth = currentMonth,
+            monthStrip = monthStrip,
+            onSelectMonth = onSelectMonth,
+            onPreviousMonth = onPreviousMonth,
+            onNextMonth = onNextMonth,
+            onGoToToday = onGoToToday,
+        )
+    }
+}
+
+@Composable
 private fun MonthStrip(
     currentMonth: YearMonth,
     monthStrip: List<YearMonth>,
@@ -232,11 +288,7 @@ private fun MonthStrip(
         ) {
             monthStrip.forEach { month ->
                 val isCurrent = month == currentMonth
-                val label = if (isCurrent) {
-                    TimeFormatter.formatMonthStripLabelFull(month)
-                } else {
-                    TimeFormatter.formatMonthStripLabel(month)
-                }
+                val label = TimeFormatter.formatMonthStripLabel(month)
                 val textStyle = if (isCurrent) {
                     MaterialTheme.typography.titleSmall
                 } else {

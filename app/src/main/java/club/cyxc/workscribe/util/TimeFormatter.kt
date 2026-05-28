@@ -30,7 +30,11 @@ object TimeFormatter {
     }
 
     fun formatCalendarDayYear(date: LocalDate): String {
-        return String.format(Locale.CHINA, "%d年", date.year)
+        return formatYear(date.year)
+    }
+
+    fun formatYear(year: Int): String {
+        return String.format(Locale.CHINA, "%d年", year)
     }
 
     fun isCalendarDayYearVisible(date: LocalDate): Boolean {

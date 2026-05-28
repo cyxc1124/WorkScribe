@@ -121,6 +121,7 @@ fun WorkScribeApp(
                     uiState = calendarUiState,
                     onSelectDate = calendarViewModel::selectDate,
                     onSelectMonth = calendarViewModel::selectMonth,
+                    onSelectYear = calendarViewModel::selectYear,
                     onPreviousMonth = calendarViewModel::previousMonth,
                     onNextMonth = calendarViewModel::nextMonth,
                     onGoToToday = calendarViewModel::goToToday,
