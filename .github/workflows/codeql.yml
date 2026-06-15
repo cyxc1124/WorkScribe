@@ -34,7 +34,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           # Android 项目需手动构建；autobuild 无法正确解析 AGP 工程
@@ -56,6 +56,6 @@ jobs:
         run: ./gradlew :app:assembleDebug --stacktrace
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: /language:${{ matrix.language }}
