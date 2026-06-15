@@ -45,7 +45,7 @@ jobs:
         run: ./gradlew :app:lintDebug --stacktrace
 
       - name: Upload Debug APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/*.apk
@@ -54,7 +54,7 @@ jobs:
 
       - name: Upload Lint Reports on Failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lint-reports
           path: app/build/reports/lint-results-*.html
@@ -133,7 +133,7 @@ jobs:
         run: ./gradlew :app:assembleRelease --stacktrace
 
       - name: Upload Release APK as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: app-release
           path: app/build/outputs/apk/release/*.apk
