@@ -1,0 +1,61 @@
+name: CodeQL
+
+# 触发：
+# - main / master 分支 push、PR：静态安全分析（Java/Kotlin）
+# - 每周一定时扫描
+# - 可在 Actions 页手动 workflow_dispatch
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    - cron: '0 1 * * 1'
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [java-kotlin]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          # Android 项目需手动构建；autobuild 无法正确解析 AGP 工程
+          build-mode: manual
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Grant execute on gradlew
+        run: chmod +x ./gradlew
+
+      - name: Build for CodeQL
+        run: ./gradlew :app:assembleDebug --stacktrace
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:${{ matrix.language }}
