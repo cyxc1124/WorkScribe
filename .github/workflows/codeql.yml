@@ -1,15 +1,15 @@
 name: CodeQL
 
 # 触发：
-# - main / master 分支 push、PR：静态安全分析（Java/Kotlin）
+# - develop / main 分支 push、PR：静态安全分析（Java/Kotlin）
 # - 每周一定时扫描
 # - 可在 Actions 页手动 workflow_dispatch
 
 on:
   push:
-    branches: [main, master]
+    branches: [develop, main]
   pull_request:
-    branches: [main, master]
+    branches: [develop, main]
   schedule:
     - cron: '0 1 * * 1'
   workflow_dispatch:

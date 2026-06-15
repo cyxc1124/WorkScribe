@@ -1,7 +1,7 @@
 name: Android
 
 # 触发：
-# - main / master 分支 push、PR：跑 debug 构建 + Android lint，上传 APK 供下载
+# - develop / main 分支 push、PR：跑 debug 构建 + Android lint，上传 APK 供下载
 # - 推 tag `v*`：在 build job 通过后跑 release job，用 keystore secrets 签名并
 #   附到 GitHub Release（需要在 repo Settings → Secrets 配置以下四个：
 #   - RELEASE_KEYSTORE_BASE64：keystore 文件的 base64（`base64 -w0 release.jks`）
@@ -9,10 +9,10 @@ name: Android
 
 on:
   push:
-    branches: [main, master]
+    branches: [develop, main]
     tags: ['v*']
   pull_request:
-    branches: [main, master]
+    branches: [develop, main]
   workflow_dispatch:
 
 permissions:
