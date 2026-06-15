@@ -378,6 +378,7 @@ private fun DayCell(
     modifier: Modifier = Modifier,
 ) {
     val colors = statusColors(cell.status)
+    val colorScheme = MaterialTheme.colorScheme
     val showHours = cell.workDurationMillis > 0 &&
         (cell.status == ResolvedDayStatus.WORK || cell.status == ResolvedDayStatus.OVERTIME)
     val showStatusBlock = cell.status == ResolvedDayStatus.SICK ||
@@ -391,9 +392,9 @@ private fun DayCell(
             .clip(RoundedCornerShape(6.dp))
             .background(
                 when {
-                    cell.isSelected -> colors.background.copy(alpha = 0.95f)
+                    cell.isSelected -> colorScheme.primaryContainer
                     colors.background != Color.Transparent -> colors.background
-                    else -> MaterialTheme.colorScheme.surface
+                    else -> colorScheme.surface
                 },
             )
             .border(
@@ -403,9 +404,9 @@ private fun DayCell(
                     else -> 0.5.dp
                 },
                 color = when {
-                    cell.isSelected -> colors.accent
-                    cell.isToday -> MaterialTheme.colorScheme.primary
-                    else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    cell.isSelected -> colorScheme.primary
+                    cell.isToday -> colorScheme.primary
+                    else -> colorScheme.outlineVariant.copy(alpha = 0.5f)
                 },
                 shape = RoundedCornerShape(6.dp),
             )
@@ -417,9 +418,11 @@ private fun DayCell(
             style = MaterialTheme.typography.labelMedium,
             fontWeight = if (cell.isToday || cell.isSelected) FontWeight.Bold else FontWeight.Normal,
             color = when {
-                !cell.isCurrentMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                !cell.isCurrentMonth -> colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                cell.isSelected -> colorScheme.onPrimaryContainer
+                cell.isToday -> colorScheme.primary
                 cell.status != null -> colors.onBackground
-                else -> MaterialTheme.colorScheme.onSurface
+                else -> colorScheme.onSurface
             },
             modifier = Modifier.align(Alignment.TopStart),
         )
