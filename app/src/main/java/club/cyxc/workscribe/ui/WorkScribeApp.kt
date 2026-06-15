@@ -127,6 +127,7 @@ fun WorkScribeApp(
                     onGoToToday = calendarViewModel::goToToday,
                     onSetDayStatus = calendarViewModel::setDayStatus,
                     onClearDayStatus = calendarViewModel::clearDayStatus,
+                    onSaveNote = calendarViewModel::saveNote,
                     onOpenMakeupPunch = { date ->
                         makeupPunchInitialDate = date.toString()
                         showMakeupPunch = true

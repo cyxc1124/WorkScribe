@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.BeachAccess
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.MoreTime
+import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -93,11 +94,23 @@ fun CalendarScreen(
     onGoToToday: () -> Unit,
     onSetDayStatus: (LocalDate, DayStatusType) -> Unit,
     onClearDayStatus: (LocalDate) -> Unit,
+    onSaveNote: (LocalDate, String) -> Unit,
     onOpenMakeupPunch: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showYearPicker by remember { mutableStateOf(false) }
     var showMonthPicker by remember { mutableStateOf(false) }
+    var showNoteEditor by remember { mutableStateOf(false) }
+
+    if (showNoteEditor && uiState.selectedDate != null) {
+        DayNoteEditBottomSheet(
+            initialContent = uiState.selectedDayNote.orEmpty(),
+            onDismiss = { showNoteEditor = false },
+            onSave = { content ->
+                onSaveNote(uiState.selectedDate, content)
+            },
+        )
+    }
 
     if (showYearPicker) {
         WheelYearPickerBottomSheet(
@@ -174,6 +187,12 @@ fun CalendarScreen(
                             onSetDayStatus(uiState.selectedDate, type)
                         },
                         onClear = { onClearDayStatus(uiState.selectedDate) },
+                    )
+                }
+                item {
+                    DayNoteCard(
+                        note = uiState.selectedDayNote,
+                        onClick = { showNoteEditor = true },
                     )
                 }
                 if (!uiState.selectedDate.isAfter(LocalDate.now())) {
@@ -451,6 +470,17 @@ private fun DayCell(
                 maxLines = 1,
             )
         }
+
+        if (cell.hasNote) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(2.dp)
+                    .size(5.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(MaterialTheme.colorScheme.primary),
+            )
+        }
     }
 }
 
@@ -624,6 +654,56 @@ private fun SelectedDayHeader(selectedDate: LocalDate?) {
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+@Composable
+private fun DayNoteCard(
+    note: String?,
+    onClick: () -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        ),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Notes,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "备注",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                text = note?.takeIf { it.isNotBlank() } ?: "点击添加备注…",
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (note.isNullOrBlank()) {
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+                maxLines = 4,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 

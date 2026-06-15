@@ -8,7 +8,11 @@ import club.cyxc.workscribe.data.PunchSettingsRepository
 class WorkScribeApplication : Application() {
     val repository: PunchRepository by lazy {
         val database = AppDatabase.getInstance(this)
-        PunchRepository(database.punchDao(), database.dayStatusDao())
+        PunchRepository(
+            database.punchDao(),
+            database.dayStatusDao(),
+            database.dayNoteDao(),
+        )
     }
 
     val settingsRepository: PunchSettingsRepository by lazy {

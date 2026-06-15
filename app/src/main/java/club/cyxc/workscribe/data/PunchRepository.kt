@@ -11,6 +11,7 @@ import java.time.ZoneId
 class PunchRepository(
     private val dao: PunchDao,
     private val dayStatusDao: DayStatusDao,
+    private val dayNoteDao: DayNoteDao,
 ) {
 
     fun observeTodayRecords(): Flow<List<PunchRecord>> {
@@ -87,6 +88,35 @@ class PunchRepository(
 
     suspend fun clearDayStatus(date: LocalDate) {
         dayStatusDao.deleteByDate(date.toEpochDay())
+    }
+
+    fun observeNote(date: LocalDate): Flow<String?> {
+        return dayNoteDao.observeContent(date.toEpochDay())
+    }
+
+    fun observeNotesBetween(
+        startEpochDay: Long,
+        endEpochDay: Long,
+    ): Flow<Map<Long, String>> {
+        return dayNoteDao.observeInRange(startEpochDay, endEpochDay).map { notes ->
+            notes.associate { it.dateEpochDay to it.content }
+        }
+    }
+
+    suspend fun saveNote(date: LocalDate, content: String) {
+        val trimmed = content.trim()
+        val epochDay = date.toEpochDay()
+        if (trimmed.isEmpty()) {
+            dayNoteDao.deleteByDate(epochDay)
+        } else {
+            dayNoteDao.upsert(
+                DayNote(
+                    dateEpochDay = epochDay,
+                    content = trimmed.take(DayNoteLimits.MAX_LENGTH),
+                    updatedAt = System.currentTimeMillis(),
+                ),
+            )
+        }
     }
 
     companion object {

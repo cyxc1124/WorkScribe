@@ -35,6 +35,7 @@ data class CalendarDayCell(
     val status: ResolvedDayStatus?,
     val workDurationMillis: Long,
     val manualStatus: DayStatusType?,
+    val hasNote: Boolean,
 )
 
 data class CalendarUiState(
@@ -45,6 +46,7 @@ data class CalendarUiState(
     val selectedDayRecords: List<PunchRecord> = emptyList(),
     val selectedDayStatus: ResolvedDayStatus? = null,
     val selectedDayManualStatus: DayStatusType? = null,
+    val selectedDayNote: String? = null,
     val workDurationMillis: Long = 0L,
 )
 
@@ -53,7 +55,9 @@ private data class CalendarGridInputs(
     val selected: LocalDate?,
     val gridRecords: List<PunchRecord>,
     val gridDayStatuses: Map<Long, DayStatusType>,
+    val gridNotes: Map<Long, String>,
     val selectedDayRecords: List<PunchRecord>,
+    val selectedDayNote: String?,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -82,6 +86,14 @@ class CalendarViewModel(
         )
     }
 
+    private val gridNotes = _currentMonth.flatMapLatest { month ->
+        val (gridStart, gridEnd) = monthGridBounds(month)
+        repository.observeNotesBetween(
+            gridStart.toEpochDay(),
+            gridEnd.plusDays(1).toEpochDay(),
+        )
+    }
+
     private val selectedDayRecords = _selectedDate.flatMapLatest { date ->
         if (date == null) {
             flowOf(emptyList())
@@ -90,22 +102,50 @@ class CalendarViewModel(
         }
     }
 
-    val uiState: StateFlow<CalendarUiState> = combine(
+    private val selectedDayNote = _selectedDate.flatMapLatest { date ->
+        if (date == null) {
+            flowOf(null)
+        } else {
+            repository.observeNote(date)
+        }
+    }
+
+    private val calendarInputs = combine(
         combine(
             _currentMonth,
             _selectedDate,
             gridRecords,
             gridDayStatuses,
-            selectedDayRecords,
-        ) { month, selected, gridRecs, gridStatuses, dayRecs ->
-            CalendarGridInputs(month, selected, gridRecs, gridStatuses, dayRecs)
+            gridNotes,
+        ) { month, selected, gridRecs, gridStatuses, notes ->
+            CalendarGridInputs(
+                month = month,
+                selected = selected,
+                gridRecords = gridRecs,
+                gridDayStatuses = gridStatuses,
+                gridNotes = notes,
+                selectedDayRecords = emptyList(),
+                selectedDayNote = null,
+            )
         },
+        selectedDayRecords,
+        selectedDayNote,
+    ) { inputs, dayRecs, dayNote ->
+        inputs.copy(
+            selectedDayRecords = dayRecs,
+            selectedDayNote = dayNote,
+        )
+    }
+
+    val uiState: StateFlow<CalendarUiState> = combine(
+        calendarInputs,
         settingsRepository.configFlow,
     ) { inputs, config ->
         val month = inputs.month
         val selected = inputs.selected
         val gridRecs = inputs.gridRecords
         val gridStatuses = inputs.gridDayStatuses
+        val gridNotes = inputs.gridNotes
         val dayRecs = inputs.selectedDayRecords
         val recordsByDate = gridRecs.groupBy { record ->
             Instant.ofEpochMilli(record.timestamp).atZone(zoneId).toLocalDate()
@@ -133,6 +173,7 @@ class CalendarViewModel(
             today = today,
             recordsByDate = recordsByDate,
             manualStatuses = gridStatuses,
+            notes = gridNotes,
             lunchBreakEnabled = config.lunchBreakEnabled,
             lunchBreakMinutes = config.lunchBreakMinutes,
         )
@@ -146,6 +187,7 @@ class CalendarViewModel(
             selectedDayRecords = sortedDayRecs,
             selectedDayStatus = selectedStatus,
             selectedDayManualStatus = selectedManual,
+            selectedDayNote = inputs.selectedDayNote,
             workDurationMillis = DayStatusResolver.workDurationMillis(
                 sortedDayRecs,
                 selectedAnchor,
@@ -212,12 +254,19 @@ class CalendarViewModel(
         }
     }
 
+    fun saveNote(date: LocalDate, content: String) {
+        viewModelScope.launch {
+            repository.saveNote(date, content)
+        }
+    }
+
     private fun buildGridDays(
         month: YearMonth,
         selected: LocalDate?,
         today: LocalDate,
         recordsByDate: Map<LocalDate, List<PunchRecord>>,
         manualStatuses: Map<Long, DayStatusType>,
+        notes: Map<Long, String>,
         lunchBreakEnabled: Boolean,
         lunchBreakMinutes: Int,
     ): List<CalendarDayCell> {
@@ -258,6 +307,7 @@ class CalendarViewModel(
                     lunchBreakMinutes,
                 ),
                 manualStatus = manual,
+                hasNote = notes.containsKey(date.toEpochDay()),
             )
         }
     }
